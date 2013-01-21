@@ -3,7 +3,7 @@ import Control.Monad.State (StateT(..), MonadState(..), evalStateT)
 import Control.Monad.Trans (liftIO, lift)
 import Control.Monad.IO.Class (MonadIO)
 
-import Data.List (intercalate, find)
+import Data.List (intercalate, find, isPrefixOf)
 import Data.Maybe (fromJust)
 
 import System.Console.Haskeline
@@ -11,9 +11,22 @@ import System.Console.Haskeline.History (historyLines)
 import System.Console.Haskeline.Completion(CompletionFunc)
 import System.Exit (exitSuccess)
 
--- TODO
+buildCompletions = map (\name -> Completion name name True)
+
 commandLineComplete :: Monad m => CompletionFunc m
-commandLineComplete (leftLine, _) = return (leftLine, [])
+commandLineComplete (leftLine, _) = do
+    let line = reverse leftLine
+    let ws = words line
+    let allCards = map show allPieces ++ map show allRooms ++ map show allWeapons
+    case length ws of
+        0 -> return (leftLine, buildCompletions ["cards"])
+        1 -> if head leftLine == ' '
+                then return (leftLine, buildCompletions allCards)
+                else return ("", buildCompletions ["cards"])
+        v -> if head leftLine == ' '
+                then return (leftLine, buildCompletions allCards)
+                else return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCards)
+
 
 cmdPrompt :: String -> String
 cmdPrompt "" = "(cluedo) "
@@ -195,10 +208,14 @@ askMyCards = do
     l <- lift $ getInputLine $ cmdPrompt ""
     case l of
         Nothing -> liftIO exitSuccess
-        Just "" -> askPlayerNames
-        Just v ->  do
-            let cards = map parseCard (words v)
+        Just "" -> askMyCards
+        Just v | "cards " `isPrefixOf` v ->  do
+            let cardNames = tail $ words v -- drop cards command
+            let cards = map parseCard cardNames
             mapM_ (setPlayerCard "me") cards
+        Just _ ->  do
+            liftIO $ putStrLn $ "cards command should be used to enter cards"
+            askMyCards
 
 initialSetup :: Cluedo (InputT IO) ()
 initialSetup = do
