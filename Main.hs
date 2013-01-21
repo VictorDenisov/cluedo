@@ -11,8 +11,9 @@ import System.Console.Haskeline.History (historyLines)
 import System.Console.Haskeline.Completion(CompletionFunc)
 import System.Exit (exitSuccess)
 
+-- TODO
 commandLineComplete :: Monad m => CompletionFunc m
-commandLineComplete = undefined
+commandLineComplete (leftLine, _) = return (leftLine, [])
 
 cmdPrompt = "(cluedo) "
 
@@ -50,6 +51,24 @@ data Room = Kitchen
 
 allRooms = [ Bathroom, Study, Dining, Billiard, Garage
            , Bedroom, Guestroom, Kitchen, Yard]
+
+data Card = PieceCard Piece
+          | WeaponCard Weapon
+          | RoomCard Room
+          | UnknownCard
+
+parseCard :: String -> Card
+parseCard s = case s `lookup` weaponPairs of
+            Just v -> WeaponCard v
+            Nothing -> case s `lookup` roomPairs of
+                        Just v -> RoomCard v
+                        Nothing -> case s `lookup` piecePairs of
+                                    Just v -> PieceCard v
+                                    Nothing -> UnknownCard
+    where
+        weaponPairs = ((map show allWeapons) `zip` allWeapons)
+        roomPairs = ((map show allRooms) `zip` allRooms)
+        piecePairs = ((map show allPieces) `zip` allPieces)
 
 data Status = Yes
             | No
@@ -99,6 +118,36 @@ setPlayers l = do
     st <- get
     put $ st {players = l}
 
+getPlayer :: Monad m => String -> Cluedo m (Maybe Player)
+getPlayer n = do
+    st <- get
+    return $ find ((n ==) . name) (players st)
+
+setPlayerCard :: Monad m => String -> Card -> Cluedo m ()
+setPlayerCard n c = do
+    st <- get
+    setPlayers $ map (setCard n c) (players st)
+
+setCard :: String -> Card -> Player -> Player
+setCard n (PieceCard p) pl | n == name pl = pl {pieces = map (setPiece p) (pieces pl)}
+setCard n (PieceCard p) pl = pl
+setCard n (RoomCard r) pl | n == name pl = pl {rooms = map (setRoom r) (rooms pl)}
+setCard n (RoomCard r) pl = pl
+setCard n (WeaponCard w) pl | n == name pl = pl {weapons = map (setWeapon w) (weapons pl)}
+setCard n (WeaponCard w) pl = pl
+
+setPiece :: Piece -> (Piece, Status) -> (Piece, Status)
+setPiece p (pv, st) | p == pv = (pv, Yes)
+setPiece p (pv, st) = (pv, st)
+
+setRoom :: Room -> (Room, Status) -> (Room, Status)
+setRoom r (rv, st) | r == rv = (rv, Yes)
+setRoom r (rv, st) = (rv, st)
+
+setWeapon :: Weapon -> (Weapon, Status) -> (Weapon, Status)
+setWeapon w (wv, st) | w == wv = (wv, Yes)
+setWeapon w (wv, st) = (wv, st)
+
 printTable :: MonadIO m => Cluedo m ()
 printTable = do
     st <- get
@@ -138,9 +187,21 @@ askPlayerNames = do
         Just "" -> askPlayerNames
         Just v ->  setPlayers $ (emptyPlayer "me") : (map fullPlayer (words v))
 
+askMyCards :: Cluedo (InputT IO) ()
+askMyCards = do
+    liftIO $ putStrLn $ "Please enter your cards"
+    l <- lift $ getInputLine cmdPrompt
+    case l of
+        Nothing -> liftIO exitSuccess
+        Just "" -> askPlayerNames
+        Just v ->  do
+            let cards = map parseCard (words v)
+            mapM_ (setPlayerCard "me") cards
+
 initialSetup :: Cluedo (InputT IO) ()
 initialSetup = do
     askPlayerNames
+    askMyCards
     printTable
 
 mainLoop :: Cluedo (InputT IO) ()
