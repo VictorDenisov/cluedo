@@ -13,20 +13,30 @@ import System.Exit (exitSuccess)
 
 buildCompletions = map (\name -> Completion name name True)
 
+allCards = map show allPieces ++ map show allRooms ++ map show allWeapons
+
+commandList = ["cards", "turn"]
+
+completeCommand leftLine cmdName = case cmdName of
+    "cards" -> do
+        let line = reverse leftLine
+        let ws = words line
+        if head leftLine == ' '
+            then return (leftLine, buildCompletions allCards)
+            else return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCards)
+    "turn" ->
+        return (leftLine, [])
+
 commandLineComplete :: Monad m => CompletionFunc m
 commandLineComplete (leftLine, _) = do
     let line = reverse leftLine
     let ws = words line
-    let allCards = map show allPieces ++ map show allRooms ++ map show allWeapons
     case length ws of
-        0 -> return (leftLine, buildCompletions ["cards"])
+        0 -> return (leftLine, buildCompletions commandList)
         1 -> if head leftLine == ' '
-                then return (leftLine, buildCompletions allCards)
-                else return ("", buildCompletions ["cards"])
-        v -> if head leftLine == ' '
-                then return (leftLine, buildCompletions allCards)
-                else return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCards)
-
+                then completeCommand leftLine (head ws)
+                else return ("", buildCompletions $ filter ((last ws) `isPrefixOf`) commandList)
+        v -> completeCommand leftLine (head ws)
 
 cmdPrompt :: String -> String
 cmdPrompt "" = "(cluedo) "
@@ -206,7 +216,7 @@ printTable = do
 
 main = runInputT (Settings (commandLineComplete) Nothing True)
                 $ evalStateT
-                    (initialSetup)
+                    (initialSetup >> mainLoop)
                     (Table { players  = []
                            , out      = emptyPlayer "out"
                            , envelope = fullPlayer "envelope"
@@ -253,4 +263,14 @@ initialSetup = do
     printTable
 
 mainLoop :: Cluedo (InputT IO) ()
-mainLoop = undefined
+mainLoop = do
+    l <- lift $ getInputLine $ cmdPrompt ""
+    case l of
+        Nothing -> liftIO exitSuccess
+        Just "" -> mainLoop
+        Just v  -> do
+            let ws = words v
+            case head ws of
+                "turn" -> liftIO $ putStrLn "turn command"
+                _      -> liftIO $ putStrLn "other crap"
+    mainLoop
