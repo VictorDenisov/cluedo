@@ -3,7 +3,8 @@ import Control.Monad.State (StateT(..), MonadState(..), evalStateT)
 import Control.Monad.Trans (liftIO, lift)
 import Control.Monad.IO.Class (MonadIO)
 
-import Data.List (intercalate)
+import Data.List (intercalate, find)
+import Data.Maybe (fromJust)
 
 import System.Console.Haskeline
 import System.Console.Haskeline.History (historyLines)
@@ -49,34 +50,41 @@ data Room = Kitchen
 
 allRooms = [ Bathroom, Study, Dining, Billiard, Garage
            , Bedroom, Guestroom, Kitchen, Yard]
+
+data Status = Yes
+            | No
+            | Unknown
+
+instance Show Status where
+    show Yes      = "+"
+    show No       = "-"
+    show Unknown  = "?"
              
 data Player = Player
                 { name    :: String
-                , rooms   :: [Room]
-                , pieces  :: [Piece]
-                , weapons :: [Weapon]
+                , rooms   :: [(Room, Status)]
+                , pieces  :: [(Piece, Status)]
+                , weapons :: [(Weapon, Status)]
                 }
 
 fullPlayer :: String -> Player
-fullPlayer name = Player name allRooms allPieces allWeapons
+fullPlayer name = Player name (allRooms `zip` (repeat Unknown))
+                              (allPieces `zip` (repeat Unknown))
+                              (allWeapons `zip` (repeat Unknown))
 
 emptyPlayer :: String -> Player
-emptyPlayer name = Player name [] [] []
+emptyPlayer name = Player name (allRooms `zip` (repeat No))
+                               (allPieces `zip` (repeat No))
+                               (allWeapons `zip` (repeat No))
 
-hasPiece :: Player -> Piece -> String
-hasPiece player piece = if piece `elem` (pieces player)
-                            then "+"
-                            else "-"
+hasPiece :: Player -> Piece -> Status
+hasPiece player piece = snd $ fromJust $ find ((piece ==) . fst) (pieces player)
 
-hasRoom :: Player -> Room -> String
-hasRoom player room = if room `elem` (rooms player)
-                            then "+"
-                            else "-"
+hasRoom :: Player -> Room -> Status
+hasRoom player room = snd $ fromJust $ find ((room ==) . fst) (rooms player)
 
-hasWeapon :: Player -> Weapon -> String
-hasWeapon player weapon = if weapon `elem` (weapons player)
-                            then "+"
-                            else "-"
+hasWeapon :: Player -> Weapon -> Status
+hasWeapon player weapon =  snd $ fromJust $ find ((weapon ==) . fst) (weapons player)
 
 data Table = Table
     { players  :: [Player]
@@ -95,10 +103,10 @@ printTable :: MonadIO m => Cluedo m ()
 printTable = do
     st <- get
     let allPlayers = ((envelope st) : (players st)) ++ [(out st)]
-    let printer getter piece = (intercalate "\t" $ map (`getter` piece) allPlayers)
+    let printer getter piece = (intercalate "\t" $ map (show . (`getter` piece)) allPlayers)
     let piecePrinter piece = 
             liftIO $ putStrLn $ (show piece) ++ ":\t"
-                                        ++ (printer hasPiece Green)
+                                        ++ (printer hasPiece piece)
     let roomPrinter room = 
             liftIO $ putStrLn $ (show room) ++ ":\t"
                                         ++ (printer hasRoom room)
@@ -117,7 +125,7 @@ main = runInputT (Settings (commandLineComplete) Nothing True)
                 $ evalStateT
                     (initialSetup)
                     (Table { players  = []
-                           , out      = (Player "out" [] [] [])
+                           , out      = emptyPlayer "out"
                            , envelope = fullPlayer "envelope"
                            })
 
