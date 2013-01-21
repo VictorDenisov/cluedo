@@ -133,15 +133,22 @@ setPlayers l = do
     st <- get
     put $ st {players = l}
 
-getPlayer :: Monad m => String -> Cluedo m (Maybe Player)
-getPlayer n = do
+setOut :: Monad m => Player -> Cluedo m ()
+setOut l = do
     st <- get
-    return $ find ((n ==) . name) (players st)
+    put $ st {out = l}
+
+setEnvelope :: Monad m => Player -> Cluedo m ()
+setEnvelope l = do
+    st <- get
+    put $ st {envelope = l}
 
 setPlayerCard :: Monad m => String -> Card -> Cluedo m ()
 setPlayerCard n c = do
     st <- get
     setPlayers $ map (setCard n c) (players st)
+    setOut $ setCard n c (out st)
+    setEnvelope $ setCard n c (envelope st)
 
 setCard :: String -> Card -> Player -> Player
 setCard n (PieceCard p) pl | n == name pl = pl {pieces = map (setPiece p) (pieces pl)}
@@ -202,25 +209,35 @@ askPlayerNames = do
         Just "" -> askPlayerNames
         Just v ->  setPlayers $ (emptyPlayer "me") : (map fullPlayer (words v))
 
-askMyCards :: Cluedo (InputT IO) ()
-askMyCards = do
-    liftIO $ putStrLn $ "Please enter your cards"
+askCards :: String -> Cluedo (InputT IO) ()
+askCards playerName = do
     l <- lift $ getInputLine $ cmdPrompt ""
     case l of
         Nothing -> liftIO exitSuccess
-        Just "" -> askMyCards
+        Just "" -> askCards playerName
         Just v | "cards " `isPrefixOf` v ->  do
             let cardNames = tail $ words v -- drop cards command
             let cards = map parseCard cardNames
-            mapM_ (setPlayerCard "me") cards
+            mapM_ (setPlayerCard playerName) cards
         Just _ ->  do
             liftIO $ putStrLn $ "cards command should be used to enter cards"
-            askMyCards
+            askCards playerName
+
+askMyCards :: Cluedo (InputT IO) ()
+askMyCards = do
+    liftIO $ putStrLn $ "Please enter your cards"
+    askCards "me"
+
+askOutCards :: Cluedo (InputT IO) ()
+askOutCards = do
+    liftIO $ putStrLn $ "Please enter cards in out"
+    askCards "out"
 
 initialSetup :: Cluedo (InputT IO) ()
 initialSetup = do
     askPlayerNames
     askMyCards
+    askOutCards
     printTable
 
 mainLoop :: Cluedo (InputT IO) ()
