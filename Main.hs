@@ -15,7 +15,9 @@ import System.Exit (exitSuccess)
 commandLineComplete :: Monad m => CompletionFunc m
 commandLineComplete (leftLine, _) = return (leftLine, [])
 
-cmdPrompt = "(cluedo) "
+cmdPrompt :: String -> String
+cmdPrompt "" = "(cluedo) "
+cmdPrompt s = "(cluedo) " ++ s ++ " # "
 
 data Piece = Scarlett
            | Mustard
@@ -181,7 +183,7 @@ main = runInputT (Settings (commandLineComplete) Nothing True)
 askPlayerNames :: Cluedo (InputT IO) ()
 askPlayerNames = do
     liftIO $ putStrLn $ "Please enter players names"
-    l <- lift $ getInputLine cmdPrompt
+    l <- lift $ getInputLine $ cmdPrompt ""
     case l of
         Nothing -> liftIO exitSuccess
         Just "" -> askPlayerNames
@@ -190,7 +192,7 @@ askPlayerNames = do
 askMyCards :: Cluedo (InputT IO) ()
 askMyCards = do
     liftIO $ putStrLn $ "Please enter your cards"
-    l <- lift $ getInputLine cmdPrompt
+    l <- lift $ getInputLine $ cmdPrompt ""
     case l of
         Nothing -> liftIO exitSuccess
         Just "" -> askPlayerNames
