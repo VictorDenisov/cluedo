@@ -152,23 +152,35 @@ setPlayerCard n c = do
 
 setCard :: String -> Card -> Player -> Player
 setCard n (PieceCard p) pl | n == name pl = pl {pieces = map (setPiece p) (pieces pl)}
-setCard n (PieceCard p) pl = pl
+setCard n (PieceCard p) pl = pl {pieces = map (clearPiece p) (pieces pl)}
 setCard n (RoomCard r) pl | n == name pl = pl {rooms = map (setRoom r) (rooms pl)}
-setCard n (RoomCard r) pl = pl
+setCard n (RoomCard r) pl = pl {rooms = map (clearRoom r) (rooms pl)}
 setCard n (WeaponCard w) pl | n == name pl = pl {weapons = map (setWeapon w) (weapons pl)}
-setCard n (WeaponCard w) pl = pl
+setCard n (WeaponCard w) pl = pl {weapons = map (clearWeapon w) (weapons pl)}
 
 setPiece :: Piece -> (Piece, Status) -> (Piece, Status)
 setPiece p (pv, st) | p == pv = (pv, Yes)
 setPiece p (pv, st) = (pv, st)
 
+clearPiece :: Piece -> (Piece, Status) -> (Piece, Status)
+clearPiece p (pv, st) | p == pv = (pv, No)
+clearPiece p (pv, st) = (pv, st)
+
 setRoom :: Room -> (Room, Status) -> (Room, Status)
 setRoom r (rv, st) | r == rv = (rv, Yes)
 setRoom r (rv, st) = (rv, st)
 
+clearRoom :: Room -> (Room, Status) -> (Room, Status)
+clearRoom r (rv, st) | r == rv = (rv, No)
+clearRoom r (rv, st) = (rv, st)
+
 setWeapon :: Weapon -> (Weapon, Status) -> (Weapon, Status)
 setWeapon w (wv, st) | w == wv = (wv, Yes)
 setWeapon w (wv, st) = (wv, st)
+
+clearWeapon :: Weapon -> (Weapon, Status) -> (Weapon, Status)
+clearWeapon w (wv, st) | w == wv = (wv, No)
+clearWeapon w (wv, st) = (wv, st)
 
 printTable :: MonadIO m => Cluedo m ()
 printTable = do
