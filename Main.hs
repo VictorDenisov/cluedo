@@ -3,6 +3,7 @@ import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
 import Control.Monad.State (MonadState(..))
 import Control.Monad.Trans (liftIO, lift)
 import Control.Monad.IO.Class (MonadIO)
+import Control.Monad (liftM)
 
 import Data.List (intercalate, find, isPrefixOf)
 import Data.Maybe (fromJust)
@@ -39,8 +40,8 @@ completeCommand (leftLine, cmdName) = do
                             return (leftLine, buildCompletions names)
                 else return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) names)
 
-commandLineComplete :: MonadIO m => CompletionFunc (Cluedo m)
-commandLineComplete (leftLine, _) = do
+basicCommandLineComplete :: MonadIO m => CompletionFunc (Cluedo m)
+basicCommandLineComplete (leftLine, _) = do
     let line = reverse leftLine
     let ws = words line
     case length ws of
@@ -49,6 +50,11 @@ commandLineComplete (leftLine, _) = do
                 then completeCommand (leftLine, (head ws))
                 else return ("", buildCompletions $ filter ((last ws) `isPrefixOf`) commandList)
         v -> completeCommand (leftLine, (head ws))
+
+commandLineComplete :: MonadIO m => CompletionFunc (Cluedo m)
+commandLineComplete arg = do
+    complete <- cmdComplete `liftM` get
+    complete arg
 
 cmdPrompt :: String -> String
 cmdPrompt "" = "(cluedo) "
@@ -107,6 +113,8 @@ parseCard s = case s `lookup` weaponPairs of
         roomPairs = ((map show allRooms) `zip` allRooms)
         piecePairs = ((map show allPieces) `zip` allPieces)
 
+data Reply = Reply String Card
+
 data Status = Yes
             | No
             | Unknown
@@ -115,7 +123,7 @@ instance Show Status where
     show Yes      = "+"
     show No       = "-"
     show Unknown  = "?"
-             
+
 data Player = Player
                 { name    :: String
                 , rooms   :: [(Room, Status)]
@@ -142,13 +150,14 @@ hasRoom player room = snd $ fromJust $ find ((room ==) . fst) (rooms player)
 hasWeapon :: Player -> Weapon -> Status
 hasWeapon player weapon =  snd $ fromJust $ find ((weapon ==) . fst) (weapons player)
 
-data Table = Table
+data Table m = Table
     { players  :: [Player]
     , out      :: Player
     , envelope :: Player
+    , cmdComplete :: CompletionFunc (Cluedo m)
     }
 
-type Cluedo = StateT Table
+type Cluedo m = StateT (Table m) m
 
 allNames :: MonadIO m => Cluedo m [String]
 allNames = do
@@ -237,6 +246,7 @@ main = evalStateT (runInputT
                     (Table { players  = []
                            , out      = emptyPlayer "out"
                            , envelope = fullPlayer "envelope"
+                           , cmdComplete = basicCommandLineComplete
                            })
 
 askPlayerNames :: InputT (Cluedo IO) ()
@@ -291,14 +301,17 @@ initialSetup = do
     askOutCards
     lift printTable
 
+askReply :: InputT (Cluedo IO) Reply
+askReply = return $ Reply "" UnknownCard
+
 enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
     liftIO $ putStrLn "Enter named cards"
-    l <- getInputLine $ cmdPrompt ("turn " ++ playerName)
-    case l of
-        Nothing -> return ()
-        Just "" -> enterTurn playerName
-        Just cmd -> enterTurn playerName
+    cards <- askCards
+                (cmdPrompt ("turn " ++ playerName))
+                $ \cs -> length cs == 3
+    r <- askReply
+    return ()
 
 mainLoop :: InputT (Cluedo IO) ()
 mainLoop = do
