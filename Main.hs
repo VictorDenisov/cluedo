@@ -1,3 +1,4 @@
+import Prelude hiding (log)
 import Control.Applicative ((<$>))
 import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
 import Control.Monad.State (MonadState(..))
@@ -19,7 +20,7 @@ allCards = map show allPieces ++ map show allRooms ++ map show allWeapons
 
 cardCount = length allCards
 
-commandList = ["cards", "turn"]
+commandList = ["cards", "turn", "showlog"]
 
 completeCommand :: MonadIO m => CompletionFunc (Cluedo m)
 completeCommand (leftLine, cmdName) = do
@@ -151,11 +152,18 @@ hasRoom player room = snd $ fromJust $ find ((room ==) . fst) (rooms player)
 hasWeapon :: Player -> Weapon -> Status
 hasWeapon player weapon =  snd $ fromJust $ find ((weapon ==) . fst) (weapons player)
 
+data LogEntry = LogEntry
+                    { asker      :: String
+                    , cardsAsked :: [Card]
+                    , replies    :: [Reply]
+                    } deriving (Show)
+
 data Table m = Table
-    { players  :: [Player]
-    , out      :: Player
-    , envelope :: Player
+    { players     :: [Player]
+    , out         :: Player
+    , envelope    :: Player
     , cmdComplete :: CompletionFunc (Cluedo m)
+    , log         :: [LogEntry]
     }
 
 type Cluedo m = StateT (Table m) m
@@ -244,10 +252,11 @@ printTable = do
 main = evalStateT (runInputT
                         (Settings (commandLineComplete) Nothing True)
                         (initialSetup >> mainLoop))
-                    (Table { players  = []
-                           , out      = emptyPlayer "out"
-                           , envelope = fullPlayer "envelope"
+                    (Table { players     = []
+                           , out         = emptyPlayer "out"
+                           , envelope    = fullPlayer "envelope"
                            , cmdComplete = basicCommandLineComplete
+                           , log         = []
                            })
 
 askPlayerNames :: InputT (Cluedo IO) ()
@@ -346,8 +355,8 @@ enterTurn playerName = do
     playerCount <- lift $ length <$> players <$> get
     r <- sequence $ replicate playerCount $ askReply
             (cmdPrompt ("turn " ++ playerName))
-    liftIO $ putStrLn $ show r
-    return ()
+    st <- lift get
+    lift $ put $ st {log = (LogEntry playerName cards r) : log st}
 
 mainLoop :: InputT (Cluedo IO) ()
 mainLoop = do
@@ -359,5 +368,8 @@ mainLoop = do
             let ws = words v
             case head ws of
                 "turn" -> enterTurn $ last ws
+                "showlog" -> do
+                    logList <- lift $ map show <$> log <$> get
+                    liftIO $ putStrLn $ intercalate "\n" logList
                 _      -> liftIO $ putStrLn "other crap"
     mainLoop
