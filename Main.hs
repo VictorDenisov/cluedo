@@ -3,7 +3,6 @@ import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
 import Control.Monad.State (MonadState(..))
 import Control.Monad.Trans (liftIO, lift)
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad (liftM)
 
 import Data.List (intercalate, find, isPrefixOf)
 import Data.Maybe (fromJust)
@@ -51,9 +50,9 @@ basicCommandLineComplete (leftLine, _) = do
                 else return ("", buildCompletions $ filter ((last ws) `isPrefixOf`) commandList)
         v -> completeCommand (leftLine, (head ws))
 
-commandLineComplete :: MonadIO m => CompletionFunc (Cluedo m)
+commandLineComplete :: (MonadIO m, Functor m) => CompletionFunc (Cluedo m)
 commandLineComplete arg = do
-    complete <- cmdComplete `liftM` get
+    complete <- cmdComplete <$> get
     complete arg
 
 cmdPrompt :: String -> String
@@ -99,6 +98,7 @@ data Card = PieceCard Piece
           | WeaponCard Weapon
           | RoomCard Room
           | UnknownCard
+            deriving (Show)
 
 parseCard :: String -> Card
 parseCard s = case s `lookup` weaponPairs of
@@ -114,6 +114,7 @@ parseCard s = case s `lookup` weaponPairs of
         piecePairs = ((map show allPieces) `zip` allPieces)
 
 data Reply = Reply String Card
+             deriving Show
 
 data Status = Yes
             | No
@@ -301,8 +302,40 @@ initialSetup = do
     askOutCards
     lift printTable
 
-askReply :: InputT (Cluedo IO) Reply
-askReply = return $ Reply "" UnknownCard
+replyComplete :: (MonadIO m, Functor m) => CompletionFunc (Cluedo m)
+replyComplete (leftLine, _) = do
+    let line = reverse leftLine
+    let ws = words line
+    playerNames <- map name <$> players <$> get
+    case (head leftLine, length ws) of
+        (_, 0) -> return ("", buildCompletions playerNames)
+        (' ', 1) -> return (leftLine, buildCompletions allCards)
+        (_, 1) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter (line `isPrefixOf`) playerNames)
+        (' ', 2) -> return (leftLine, [])
+        (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter (last ws `isPrefixOf`) allCards)
+        (_, _) -> return (leftLine, [])
+
+askReply :: String -> InputT (Cluedo IO) Reply
+askReply cmdPrompt = withCompleter replyComplete $ do
+    liftIO $ putStrLn "Enter reply"
+    l <- getInputLine cmdPrompt
+    --TODO verify correctness
+    case l of
+        Nothing -> liftIO exitSuccess
+        Just v -> do
+            let ws = words v
+            return $ Reply (head ws) (parseCard $ last ws)
+
+withCompleter :: CompletionFunc (Cluedo IO)
+              -> InputT (Cluedo IO) a
+              -> InputT (Cluedo IO) a
+withCompleter c blc = do
+    st <- lift get
+    let prevC = cmdComplete st
+    lift $ put $ st {cmdComplete = c}
+    a <- blc
+    lift $ put $ st {cmdComplete = prevC}
+    return a
 
 enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
@@ -310,7 +343,10 @@ enterTurn playerName = do
     cards <- askCards
                 (cmdPrompt ("turn " ++ playerName))
                 $ \cs -> length cs == 3
-    r <- askReply
+    playerCount <- lift $ length <$> players <$> get
+    r <- sequence $ replicate playerCount $ askReply
+            (cmdPrompt ("turn " ++ playerName))
+    liftIO $ putStrLn $ show r
     return ()
 
 mainLoop :: InputT (Cluedo IO) ()
