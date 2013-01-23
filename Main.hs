@@ -1,5 +1,6 @@
 import Control.Applicative ((<$>))
-import Control.Monad.State (StateT(..), MonadState(..), evalStateT)
+import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
+import Control.Monad.State (MonadState(..))
 import Control.Monad.Trans (liftIO, lift)
 import Control.Monad.IO.Class (MonadIO)
 
@@ -9,6 +10,7 @@ import Data.Maybe (fromJust)
 import System.Console.Haskeline
 import System.Console.Haskeline.History (historyLines)
 import System.Console.Haskeline.Completion(CompletionFunc)
+import System.Console.Haskeline.MonadException
 import System.Exit (exitSuccess)
 
 buildCompletions = map (\name -> Completion name name True)
@@ -17,26 +19,34 @@ allCards = map show allPieces ++ map show allRooms ++ map show allWeapons
 
 commandList = ["cards", "turn"]
 
-completeCommand leftLine cmdName = case cmdName of
-    "cards" -> do
-        let line = reverse leftLine
-        let ws = words line
-        if head leftLine == ' '
-            then return (leftLine, buildCompletions allCards)
-            else return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCards)
-    "turn" ->
-        return (leftLine, [])
+completeCommand :: MonadIO m => CompletionFunc (Cluedo m)
+completeCommand (leftLine, cmdName) = do
+    let line = reverse leftLine
+    let ws = words line
+    case cmdName of
+        "cards" -> do
+            if head leftLine == ' '
+                then return (leftLine, buildCompletions allCards)
+                else return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCards)
+        "turn" -> do
+            names <- allNames
+            if head leftLine == ' '
+                then if length ws >= 2
+                        then return (leftLine, [])
+                        else do
+                            return (leftLine, buildCompletions names)
+                else return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) names)
 
-commandLineComplete :: Monad m => CompletionFunc m
+commandLineComplete :: MonadIO m => CompletionFunc (Cluedo m)
 commandLineComplete (leftLine, _) = do
     let line = reverse leftLine
     let ws = words line
     case length ws of
         0 -> return (leftLine, buildCompletions commandList)
         1 -> if head leftLine == ' '
-                then completeCommand leftLine (head ws)
+                then completeCommand (leftLine, (head ws))
                 else return ("", buildCompletions $ filter ((last ws) `isPrefixOf`) commandList)
-        v -> completeCommand leftLine (head ws)
+        v -> completeCommand (leftLine, (head ws))
 
 cmdPrompt :: String -> String
 cmdPrompt "" = "(cluedo) "
@@ -138,22 +148,27 @@ data Table = Table
 
 type Cluedo = StateT Table
 
-setPlayers :: Monad m => [Player] -> Cluedo m ()
+allNames :: MonadIO m => Cluedo m [String]
+allNames = do
+    st <- get
+    return $ map name $ players st
+
+setPlayers :: MonadIO m => [Player] -> Cluedo m ()
 setPlayers l = do
     st <- get
     put $ st {players = l}
 
-setOut :: Monad m => Player -> Cluedo m ()
+setOut :: MonadIO m => Player -> Cluedo m ()
 setOut l = do
     st <- get
     put $ st {out = l}
 
-setEnvelope :: Monad m => Player -> Cluedo m ()
+setEnvelope :: MonadIO m => Player -> Cluedo m ()
 setEnvelope l = do
     st <- get
     put $ st {envelope = l}
 
-setPlayerCard :: Monad m => String -> Card -> Cluedo m ()
+setPlayerCard :: MonadIO m => String -> Card -> Cluedo m ()
 setPlayerCard n c = do
     st <- get
     setPlayers $ map (setCard n c) (players st)
@@ -214,62 +229,65 @@ printTable = do
     liftIO $ putStrLn ""
     mapM_ roomPrinter allRooms
 
-main = runInputT (Settings (commandLineComplete) Nothing True)
-                $ evalStateT
-                    (initialSetup >> mainLoop)
+main = evalStateT (runInputT
+                        (Settings (commandLineComplete) Nothing True)
+                        (initialSetup >> mainLoop))
                     (Table { players  = []
                            , out      = emptyPlayer "out"
                            , envelope = fullPlayer "envelope"
                            })
 
-askPlayerNames :: Cluedo (InputT IO) ()
+askPlayerNames :: InputT (Cluedo IO) ()
 askPlayerNames = do
     liftIO $ putStrLn $ "Please enter players names"
-    l <- lift $ getInputLine $ cmdPrompt ""
+    l <- getInputLine $ cmdPrompt ""
     case l of
         Nothing -> liftIO exitSuccess
         Just "" -> askPlayerNames
-        Just v ->  setPlayers $ (emptyPlayer "me") : (map fullPlayer (words v))
+        Just v ->  lift $ setPlayers $ (emptyPlayer "me") : (map fullPlayer (words v))
 
-askCards :: String -> Cluedo (InputT IO) ()
+askCards :: String -> InputT (Cluedo IO) ()
 askCards playerName = do
-    l <- lift $ getInputLine $ cmdPrompt ""
+    l <- getInputLine $ cmdPrompt ""
     case l of
         Nothing -> liftIO exitSuccess
         Just "" -> askCards playerName
         Just v | "cards " `isPrefixOf` v ->  do
             let cardNames = tail $ words v -- drop cards command
             let cards = map parseCard cardNames
-            mapM_ (setPlayerCard playerName) cards
+            lift $ mapM_ (setPlayerCard playerName) cards
         Just _ ->  do
             liftIO $ putStrLn $ "cards command should be used to enter cards"
             askCards playerName
 
-askMyCards :: Cluedo (InputT IO) ()
+askMyCards :: InputT (Cluedo IO) ()
 askMyCards = do
     liftIO $ putStrLn $ "Please enter your cards"
     askCards "me"
 
-askOutCards :: Cluedo (InputT IO) ()
+askOutCards :: InputT (Cluedo IO) ()
 askOutCards = do
     liftIO $ putStrLn $ "Please enter cards in out"
     askCards "out"
 
-initialSetup :: Cluedo (InputT IO) ()
+initialSetup :: InputT (Cluedo IO) ()
 initialSetup = do
     askPlayerNames
     askMyCards
     askOutCards
-    printTable
+    lift printTable
 
-enterTurn :: String -> Cluedo (InputT IO) ()
+enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
-    cmd <- lift $ getInputLine $ cmdPrompt ("turn " ++ playerName)
-    return ()
+    l <- getInputLine $ cmdPrompt ("turn " ++ playerName)
+    case l of
+        Nothing -> return ()
+        Just "" -> enterTurn playerName
+        Just cmd -> enterTurn playerName
 
-mainLoop :: Cluedo (InputT IO) ()
+mainLoop :: InputT (Cluedo IO) ()
 mainLoop = do
-    l <- lift $ getInputLine $ cmdPrompt ""
+    l <- getInputLine $ cmdPrompt ""
     case l of
         Nothing -> liftIO exitSuccess
         Just "" -> mainLoop
