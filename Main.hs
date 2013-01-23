@@ -248,9 +248,9 @@ askPlayerNames = do
         Just "" -> askPlayerNames
         Just v ->  lift $ setPlayers $ (emptyPlayer "me") : (map fullPlayer (words v))
 
-askCards :: ([Card] -> Bool) -> InputT (Cluedo IO) [Card]
-askCards cardsOk = do
-    l <- getInputLine $ cmdPrompt ""
+askCards :: String -> ([Card] -> Bool) -> InputT (Cluedo IO) [Card]
+askCards prompt cardsOk = do
+    l <- getInputLine prompt
     case l of
         Nothing -> liftIO exitSuccess
         Just "" -> again
@@ -264,20 +264,24 @@ askCards cardsOk = do
             liftIO $ putStrLn $ "cards command should be used to enter cards"
             again
     where
-            again = askCards cardsOk
+            again = askCards prompt cardsOk
 
 askMyCards :: InputT (Cluedo IO) ()
 askMyCards = do
     liftIO $ putStrLn $ "Please enter your cards"
     playerCount <- lift $ length <$> players <$> get
-    cards <- askCards $ \cs -> length cs == ((cardCount - 3) `div` playerCount)
+    cards <- askCards
+                (cmdPrompt "")
+                $ \cs -> length cs == ((cardCount - 3) `div` playerCount)
     lift $ mapM_ (setPlayerCard "me") cards
 
 askOutCards :: InputT (Cluedo IO) ()
 askOutCards = do
     liftIO $ putStrLn $ "Please enter cards in out"
     playerCount <- lift $ length <$> players <$> get
-    cards <- askCards $ \cs -> length cs == ((cardCount - 3) `rem` playerCount)
+    cards <- askCards
+                (cmdPrompt "")
+                $ \cs -> length cs == ((cardCount - 3) `rem` playerCount)
     lift $ mapM_ (setPlayerCard "out") cards
 
 initialSetup :: InputT (Cluedo IO) ()
