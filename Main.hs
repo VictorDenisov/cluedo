@@ -262,6 +262,11 @@ initialSetup = do
     askOutCards
     printTable
 
+enterTurn :: String -> Cluedo (InputT IO) ()
+enterTurn playerName = do
+    cmd <- lift $ getInputLine $ cmdPrompt ("turn " ++ playerName)
+    return ()
+
 mainLoop :: Cluedo (InputT IO) ()
 mainLoop = do
     l <- lift $ getInputLine $ cmdPrompt ""
@@ -271,6 +276,6 @@ mainLoop = do
         Just v  -> do
             let ws = words v
             case head ws of
-                "turn" -> liftIO $ putStrLn "turn command"
+                "turn" -> enterTurn $ last ws
                 _      -> liftIO $ putStrLn "other crap"
     mainLoop
