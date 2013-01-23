@@ -246,29 +246,31 @@ askPlayerNames = do
         Just "" -> askPlayerNames
         Just v ->  lift $ setPlayers $ (emptyPlayer "me") : (map fullPlayer (words v))
 
-askCards :: String -> InputT (Cluedo IO) ()
-askCards playerName = do
+askCards :: InputT (Cluedo IO) [Card]
+askCards = do
     l <- getInputLine $ cmdPrompt ""
     case l of
         Nothing -> liftIO exitSuccess
-        Just "" -> askCards playerName
+        Just "" -> askCards
         Just v | "cards " `isPrefixOf` v ->  do
             let cardNames = tail $ words v -- drop cards command
             let cards = map parseCard cardNames
-            lift $ mapM_ (setPlayerCard playerName) cards
+            return cards
         Just _ ->  do
             liftIO $ putStrLn $ "cards command should be used to enter cards"
-            askCards playerName
+            askCards
 
 askMyCards :: InputT (Cluedo IO) ()
 askMyCards = do
     liftIO $ putStrLn $ "Please enter your cards"
-    askCards "me"
+    cards <- askCards
+    lift $ mapM_ (setPlayerCard "me") cards
 
 askOutCards :: InputT (Cluedo IO) ()
 askOutCards = do
     liftIO $ putStrLn $ "Please enter cards in out"
-    askCards "out"
+    cards <- askCards
+    lift $ mapM_ (setPlayerCard "out") cards
 
 initialSetup :: InputT (Cluedo IO) ()
 initialSetup = do
@@ -279,6 +281,7 @@ initialSetup = do
 
 enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
+    liftIO $ putStrLn "Enter named cards"
     l <- getInputLine $ cmdPrompt ("turn " ++ playerName)
     case l of
         Nothing -> return ()
