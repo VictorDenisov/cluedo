@@ -17,6 +17,8 @@ buildCompletions = map (\name -> Completion name name True)
 
 allCards = map show allPieces ++ map show allRooms ++ map show allWeapons
 
+cardCount = length allCards
+
 commandList = ["cards", "turn"]
 
 completeCommand :: MonadIO m => CompletionFunc (Cluedo m)
@@ -246,30 +248,36 @@ askPlayerNames = do
         Just "" -> askPlayerNames
         Just v ->  lift $ setPlayers $ (emptyPlayer "me") : (map fullPlayer (words v))
 
-askCards :: InputT (Cluedo IO) [Card]
-askCards = do
+askCards :: ([Card] -> Bool) -> InputT (Cluedo IO) [Card]
+askCards cardsOk = do
     l <- getInputLine $ cmdPrompt ""
     case l of
         Nothing -> liftIO exitSuccess
-        Just "" -> askCards
+        Just "" -> again
         Just v | "cards " `isPrefixOf` v ->  do
             let cardNames = tail $ words v -- drop cards command
             let cards = map parseCard cardNames
-            return cards
+            if cardsOk cards
+                then return cards
+                else again
         Just _ ->  do
             liftIO $ putStrLn $ "cards command should be used to enter cards"
-            askCards
+            again
+    where
+            again = askCards cardsOk
 
 askMyCards :: InputT (Cluedo IO) ()
 askMyCards = do
     liftIO $ putStrLn $ "Please enter your cards"
-    cards <- askCards
+    playerCount <- lift $ length <$> players <$> get
+    cards <- askCards $ \cs -> length cs == ((cardCount - 3) `div` playerCount)
     lift $ mapM_ (setPlayerCard "me") cards
 
 askOutCards :: InputT (Cluedo IO) ()
 askOutCards = do
     liftIO $ putStrLn $ "Please enter cards in out"
-    cards <- askCards
+    playerCount <- lift $ length <$> players <$> get
+    cards <- askCards $ \cs -> length cs == ((cardCount - 3) `rem` playerCount)
     lift $ mapM_ (setPlayerCard "out") cards
 
 initialSetup :: InputT (Cluedo IO) ()
