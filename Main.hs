@@ -20,12 +20,15 @@ allCards = map show allPieces ++ map show allRooms ++ map show allWeapons
 
 cardCount = length allCards
 
-commandList = ["cards", "turn", "showlog"]
+commandList = ["cards", "turn", "print"]
+
+printCommandList = ["log", "table"]
 
 completeCommand :: MonadIO m => CompletionFunc (Cluedo m)
-completeCommand (leftLine, cmdName) = do
+completeCommand (leftLine, _) = do
     let line = reverse leftLine
     let ws = words line
+    let cmdName = head ws
     case cmdName of
         "cards" -> do
             if head leftLine == ' '
@@ -39,17 +42,21 @@ completeCommand (leftLine, cmdName) = do
                         else do
                             return (leftLine, buildCompletions names)
                 else return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) names)
+        "print" -> case (head leftLine, length ws) of
+            (' ', 2) -> return (leftLine, [])
+            (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) printCommandList)
+            (' ', 1) -> return (leftLine, buildCompletions $ printCommandList)
 
 basicCommandLineComplete :: MonadIO m => CompletionFunc (Cluedo m)
-basicCommandLineComplete (leftLine, _) = do
+basicCommandLineComplete a@(leftLine, _) = do
     let line = reverse leftLine
     let ws = words line
     case length ws of
         0 -> return (leftLine, buildCompletions commandList)
         1 -> if head leftLine == ' '
-                then completeCommand (leftLine, (head ws))
+                then completeCommand a
                 else return ("", buildCompletions $ filter ((last ws) `isPrefixOf`) commandList)
-        v -> completeCommand (leftLine, (head ws))
+        v -> completeCommand a
 
 commandLineComplete :: (MonadIO m, Functor m) => CompletionFunc (Cluedo m)
 commandLineComplete arg = do
@@ -368,8 +375,10 @@ mainLoop = do
             let ws = words v
             case head ws of
                 "turn" -> enterTurn $ last ws
-                "showlog" -> do
-                    logList <- lift $ map show <$> log <$> get
-                    liftIO $ putStrLn $ intercalate "\n" logList
+                "print" -> case ws !! 1 of
+                    "log" -> do
+                        logList <- lift $ map show <$> log <$> get
+                        liftIO $ putStrLn $ intercalate "\n" logList
+                    "table" -> lift printTable
                 _      -> liftIO $ putStrLn "other crap"
     mainLoop
