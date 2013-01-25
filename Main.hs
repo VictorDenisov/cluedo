@@ -4,6 +4,8 @@ import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
 import Control.Monad.State (MonadState(..))
 import Control.Monad.Trans (liftIO, lift)
 import Control.Monad.IO.Class (MonadIO)
+import Control.Monad (forM_)
+import Control.Arrow (first)
 
 import Data.List (intercalate, find, isPrefixOf)
 import Data.Maybe (fromJust)
@@ -16,9 +18,10 @@ import System.Exit (exitSuccess)
 
 buildCompletions = map (\name -> Completion name name True)
 
-allCards = map show allPieces ++ map show allRooms ++ map show allWeapons
+allKnownCards = map show allPieces ++ map show allRooms ++ map show allWeapons
+allCards = (show EmptyCard) : (show UnknownCard) : allKnownCards
 
-cardCount = length allCards
+cardCount = length allKnownCards
 
 commandList = ["cards", "turn", "print"]
 
@@ -106,9 +109,11 @@ data Card = PieceCard Piece
           | WeaponCard Weapon
           | RoomCard Room
           | UnknownCard
-            deriving (Show)
+          | EmptyCard
+            deriving (Eq, Show)
 
 parseCard :: String -> Card
+parseCard "EmptyCard" = EmptyCard
 parseCard s = case s `lookup` weaponPairs of
             Just v -> WeaponCard v
             Nothing -> case s `lookup` roomPairs of
@@ -127,6 +132,7 @@ data Reply = Reply String Card
 data Status = Yes
             | No
             | Unknown
+              deriving (Eq)
 
 instance Show Status where
     show Yes      = "+"
@@ -159,6 +165,18 @@ hasRoom player room = snd $ fromJust $ find ((room ==) . fst) (rooms player)
 hasWeapon :: Player -> Weapon -> Status
 hasWeapon player weapon =  snd $ fromJust $ find ((weapon ==) . fst) (weapons player)
 
+getCards :: Player -> [(Card, Status)]
+getCards p = map (first RoomCard) (rooms p)
+          ++ map (first PieceCard) (pieces p)
+          ++ map (first WeaponCard) (weapons p)
+
+getPlayerCards :: Monad m => String -> Cluedo m (Maybe [(Card, Status)])
+getPlayerCards n = do
+    st <- get
+    return $ do
+        player <- find ((n ==) . name) (players st)
+        return $ getCards player
+
 data LogEntry = LogEntry
                     { asker      :: String
                     , cardsAsked :: [Card]
@@ -175,27 +193,27 @@ data Table m = Table
 
 type Cluedo m = StateT (Table m) m
 
-allNames :: MonadIO m => Cluedo m [String]
+allNames :: Monad m => Cluedo m [String]
 allNames = do
     st <- get
     return $ map name $ players st
 
-setPlayers :: MonadIO m => [Player] -> Cluedo m ()
+setPlayers :: Monad m => [Player] -> Cluedo m ()
 setPlayers l = do
     st <- get
     put $ st {players = l}
 
-setOut :: MonadIO m => Player -> Cluedo m ()
+setOut :: Monad m => Player -> Cluedo m ()
 setOut l = do
     st <- get
     put $ st {out = l}
 
-setEnvelope :: MonadIO m => Player -> Cluedo m ()
+setEnvelope :: Monad m => Player -> Cluedo m ()
 setEnvelope l = do
     st <- get
     put $ st {envelope = l}
 
-setPlayerCard :: MonadIO m => String -> Card -> Cluedo m ()
+setPlayerCard :: Monad m => String -> Card -> Cluedo m ()
 setPlayerCard n c = do
     st <- get
     setPlayers $ map (setCard n c) (players st)
@@ -209,6 +227,20 @@ setCard n (RoomCard r) pl | n == name pl = pl {rooms = map (setRoom r) (rooms pl
 setCard n (RoomCard r) pl = pl {rooms = map (clearRoom r) (rooms pl)}
 setCard n (WeaponCard w) pl | n == name pl = pl {weapons = map (setWeapon w) (weapons pl)}
 setCard n (WeaponCard w) pl = pl {weapons = map (clearWeapon w) (weapons pl)}
+
+clearPlayerCard :: Monad m => String -> Card -> Cluedo m ()
+clearPlayerCard n c = do
+    st <- get
+    setPlayers $ map (clearCard n c) (players st)
+    setOut $ clearCard n c (out st)
+    setEnvelope $ clearCard n c (envelope st)
+
+clearCard n (PieceCard p) pl | n == name pl = pl {pieces = map (clearPiece p) (pieces pl)}
+clearCard n (PieceCard p) pl = pl
+clearCard n (RoomCard r) pl | n == name pl = pl {rooms = map (clearRoom r) (rooms pl)}
+clearCard n (RoomCard r) pl  = pl
+clearCard n (WeaponCard w) pl | n == name pl = pl {weapons = map (clearWeapon w) (weapons pl)}
+clearCard n (WeaponCard w) pl  = pl
 
 setPiece :: Piece -> (Piece, Status) -> (Piece, Status)
 setPiece p (pv, st) | p == pv = (pv, Yes)
@@ -353,6 +385,27 @@ withCompleter c blc = do
     lift $ put $ st {cmdComplete = prevC}
     return a
 
+processLogEntry :: MonadIO m => LogEntry -> Cluedo m ()
+processLogEntry logEntry = do
+    st <- get
+    forM_ (replies logEntry) $ \(Reply name card) ->
+        case card of
+            EmptyCard -> mapM_ (clearPlayerCard name) (cardsAsked logEntry)
+            UnknownCard -> do
+                cards <- getPlayerCards name
+                case cards of
+                    Nothing ->
+                        liftIO $ putStrLn
+                                    $ "error during getting cards of " ++ name
+                    Just cs -> do
+                        let exceptAbsent = filter ((No /=) . snd) $ filter ((\x -> x `elem` (cardsAsked logEntry)) . fst) cs
+                        liftIO $ putStrLn $ show exceptAbsent
+                        if length exceptAbsent == 1
+                            then setPlayerCard name (fst $ head exceptAbsent)
+                            else return ()
+
+            c -> setPlayerCard name c
+
 enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
     liftIO $ putStrLn "Enter named cards"
@@ -360,10 +413,12 @@ enterTurn playerName = do
                 (cmdPrompt ("turn " ++ playerName))
                 $ \cs -> length cs == 3
     playerCount <- lift $ length <$> players <$> get
-    r <- sequence $ replicate playerCount $ askReply
+    r <- sequence $ replicate (playerCount - 1) $ askReply
             (cmdPrompt ("turn " ++ playerName))
+    let logEntry = LogEntry playerName cards r
+    lift $ processLogEntry logEntry
     st <- lift get
-    lift $ put $ st {log = (LogEntry playerName cards r) : log st}
+    lift $ put $ st {log = logEntry : log st}
 
 mainLoop :: InputT (Cluedo IO) ()
 mainLoop = do
