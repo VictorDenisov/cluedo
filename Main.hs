@@ -31,6 +31,9 @@ commandList = ["cards", "turn", "print"]
 
 printCommandList = ["log", "table"]
 
+emptyCompleter :: MonadIO m => CompletionFunc (Cluedo m)
+emptyCompleter (leftLine, _) = return (leftLine, [])
+
 completeCommand :: MonadIO m => CompletionFunc (Cluedo m)
 completeCommand (leftLine, _) = do
     let line = reverse leftLine
@@ -349,7 +352,7 @@ askOutCards = do
 
 initialSetup :: InputT (Cluedo IO) ()
 initialSetup = do
-    askPlayerNames
+    withCompleter emptyCompleter askPlayerNames
     askMyCards
     askOutCards
     lift printTable
