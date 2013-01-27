@@ -1,4 +1,4 @@
-import Prelude hiding (log)
+import Prelude hiding (log, catch)
 import Control.Applicative ((<$>))
 import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
 import Control.Monad.State (MonadState(..))
@@ -10,10 +10,14 @@ import Control.Arrow (first)
 import Data.List (intercalate, find, isPrefixOf)
 import Data.Maybe (fromJust)
 
-import System.Console.Haskeline
+import System.Console.Haskeline ( InputT
+                                , Completion(..)
+                                , runInputT
+                                , Settings(..)
+                                , getInputLine)
 import System.Console.Haskeline.History (historyLines)
 import System.Console.Haskeline.Completion(CompletionFunc)
-import System.Console.Haskeline.MonadException
+import System.Console.Haskeline.MonadException(catch, MonadException, Exception, IOException)
 import System.Exit (exitSuccess)
 
 buildCompletions = map (\name -> Completion name name True)
@@ -420,16 +424,23 @@ enterTurn playerName = do
     st <- lift get
     lift $ put $ st {log = logEntry : log st}
 
+reportError :: IOException -> InputT (Cluedo IO) ()
+reportError e = liftIO $ putStrLn $ "IO error " ++ (show e)
+
 mainLoop :: InputT (Cluedo IO) ()
 mainLoop = do
     l <- getInputLine $ cmdPrompt ""
+    playerNames <- lift $ map name <$> players <$> get
     case l of
         Nothing -> liftIO exitSuccess
         Just "" -> mainLoop
         Just v  -> do
             let ws = words v
             case head ws of
-                "turn" -> enterTurn $ last ws
+                "turn" -> let nm = last ws in
+                          if nm `elem` playerNames
+                              then (enterTurn nm) `catch` reportError
+                              else liftIO $ putStrLn "Incorrect player's name"
                 "print" -> case ws !! 1 of
                     "log" -> do
                         logList <- lift $ map show <$> log <$> get
