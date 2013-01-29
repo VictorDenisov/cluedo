@@ -27,12 +27,22 @@ allCards = (show EmptyCard) : (show UnknownCard) : allKnownCards
 
 cardCount = length allKnownCards
 
-commandList = ["cards", "turn", "print"]
+commandList = ["turn", "print"]
 
 printCommandList = ["log", "table"]
 
 emptyCompleter :: MonadIO m => CompletionFunc (Cluedo m)
 emptyCompleter (leftLine, _) = return (leftLine, [])
+
+cardCompleter :: MonadIO m => CompletionFunc (Cluedo m)
+cardCompleter (leftLine, _) = do
+    let line = reverse leftLine
+    let ws = words line
+    if length ws == 0
+        then return (leftLine, buildCompletions allCards)
+        else case head leftLine of
+                ' ' -> return (leftLine, buildCompletions allCards)
+                _ -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCards)
 
 completeCommand :: MonadIO m => CompletionFunc (Cluedo m)
 completeCommand (leftLine, _) = do
@@ -40,10 +50,6 @@ completeCommand (leftLine, _) = do
     let ws = words line
     let cmdName = head ws
     case cmdName of
-        "cards" -> do
-            if head leftLine == ' '
-                then return (leftLine, buildCompletions allCards)
-                else return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCards)
         "turn" -> do
             names <- allNames
             if head leftLine == ' '
@@ -56,6 +62,7 @@ completeCommand (leftLine, _) = do
             (' ', 2) -> return (leftLine, [])
             (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) printCommandList)
             (' ', 1) -> return (leftLine, buildCompletions $ printCommandList)
+        _ -> return (leftLine, [])
 
 basicCommandLineComplete :: MonadIO m => CompletionFunc (Cluedo m)
 basicCommandLineComplete a@(leftLine, _) = do
@@ -119,15 +126,16 @@ data Card = PieceCard Piece
           | EmptyCard
             deriving (Eq, Show)
 
-parseCard :: String -> Card
-parseCard "EmptyCard" = EmptyCard
+parseCard :: String -> Maybe Card
+parseCard "EmptyCard" = Just EmptyCard
+parseCard "UnknownCard" = Just UnknownCard
 parseCard s = case s `lookup` weaponPairs of
-            Just v -> WeaponCard v
+            Just v -> Just $ WeaponCard v
             Nothing -> case s `lookup` roomPairs of
-                        Just v -> RoomCard v
+                        Just v -> Just $ RoomCard v
                         Nothing -> case s `lookup` piecePairs of
-                                    Just v -> PieceCard v
-                                    Nothing -> UnknownCard
+                                    Just v -> Just $ PieceCard v
+                                    Nothing -> Nothing
     where
         weaponPairs = ((map show allWeapons) `zip` allWeapons)
         roomPairs = ((map show allRooms) `zip` allRooms)
@@ -315,20 +323,21 @@ askPlayerNames = do
         Just v ->  lift $ setPlayers $ (emptyPlayer "me") : (map fullPlayer (words v))
 
 askCards :: String -> ([Card] -> Bool) -> InputT (Cluedo IO) [Card]
-askCards prompt cardsOk = do
+askCards prompt cardsOk = withCompleter cardCompleter $ do
     l <- getInputLine prompt
     case l of
         Nothing -> liftIO exitSuccess
         Just "" -> again
-        Just v | "cards " `isPrefixOf` v ->  do
-            let cardNames = tail $ words v -- drop cards command
+        Just v ->  do
+            let cardNames = words v
             let cards = map parseCard cardNames
-            if cardsOk cards
-                then return cards
-                else again
-        Just _ ->  do
-            liftIO $ putStrLn $ "cards command should be used to enter cards"
-            again
+            if Nothing `elem` cards
+                then again
+                else
+                    let justCards = map fromJust cards in
+                    if cardsOk justCards
+                        then return justCards
+                        else again
     where
             again = askCards prompt cardsOk
 
@@ -373,13 +382,18 @@ replyComplete (leftLine, _) = do
 askReply :: String -> InputT (Cluedo IO) Reply
 askReply cmdPrompt = withCompleter replyComplete $ do
     liftIO $ putStrLn "Enter reply"
+    playerNames <- lift $ map name <$> players <$> get
     l <- getInputLine cmdPrompt
-    --TODO verify correctness
     case l of
         Nothing -> liftIO exitSuccess
         Just v -> do
             let ws = words v
-            return $ Reply (head ws) (parseCard $ last ws)
+            let card = parseCard $ last ws
+            case (head ws `elem` playerNames, card) of
+                (True, Just c) -> return $ Reply (head ws) c
+                _ -> do
+                    liftIO $ putStrLn "Incorrect input"
+                    askReply cmdPrompt
 
 withCompleter :: CompletionFunc (Cluedo IO)
               -> InputT (Cluedo IO) a
@@ -389,6 +403,7 @@ withCompleter c blc = do
     let prevC = cmdComplete st
     lift $ put $ st {cmdComplete = c}
     a <- blc
+    st <- lift get
     lift $ put $ st {cmdComplete = prevC}
     return a
 
@@ -406,7 +421,6 @@ processLogEntry logEntry = do
                                     $ "error during getting cards of " ++ name
                     Just cs -> do
                         let exceptAbsent = filter ((No /=) . snd) $ filter ((\x -> x `elem` (cardsAsked logEntry)) . fst) cs
-                        liftIO $ putStrLn $ show exceptAbsent
                         if length exceptAbsent == 1
                             then setPlayerCard name (fst $ head exceptAbsent)
                             else return ()
@@ -421,7 +435,7 @@ enterTurn playerName = do
                 $ \cs -> length cs == 3
     playerCount <- lift $ length <$> players <$> get
     r <- sequence $ replicate (playerCount - 1) $ askReply
-            (cmdPrompt ("turn " ++ playerName))
+            (cmdPrompt ("turn " ++ playerName ++ " reply"))
     let logEntry = LogEntry playerName cards r
     lift $ processLogEntry logEntry
     st <- lift get
@@ -449,5 +463,5 @@ mainLoop = do
                         logList <- lift $ map show <$> log <$> get
                         liftIO $ putStrLn $ intercalate "\n" logList
                     "table" -> lift printTable
-                _      -> liftIO $ putStrLn "other crap"
+                _      -> liftIO $ putStrLn "Unknown command"
     mainLoop
