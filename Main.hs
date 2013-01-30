@@ -126,6 +126,18 @@ data Card = PieceCard Piece
           | EmptyCard
             deriving (Eq, Show)
 
+isPieceCard :: Card -> Bool
+isPieceCard (PieceCard _) = True
+isPieceCard _ = False
+
+isWeaponCard :: Card -> Bool
+isWeaponCard (WeaponCard _) = True
+isWeaponCard _ = False
+
+isRoomCard :: Card -> Bool
+isRoomCard (RoomCard _) = True
+isRoomCard _ = False
+
 parseCard :: String -> Maybe Card
 parseCard "EmptyCard" = Just EmptyCard
 parseCard "UnknownCard" = Just UnknownCard
@@ -332,12 +344,18 @@ askCards prompt cardsOk = withCompleter cardCompleter $ do
             let cardNames = words v
             let cards = map parseCard cardNames
             if Nothing `elem` cards
-                then again
+                then do
+                    liftIO $ putStrLn "Couldn't parse some cards. Asking again."
+                    again
                 else
                     let justCards = map fromJust cards in
                     if cardsOk justCards
                         then return justCards
-                        else again
+                        else do
+                            liftIO $ putStrLn $
+                                "Cards do not satisfy correctness "
+                                ++ "condition. Asking again."
+                            again
     where
             again = askCards prompt cardsOk
 
@@ -392,7 +410,7 @@ askReply cmdPrompt = withCompleter replyComplete $ do
             case (head ws `elem` playerNames, card) of
                 (True, Just c) -> return $ Reply (head ws) c
                 _ -> do
-                    liftIO $ putStrLn "Incorrect input"
+                    liftIO $ putStrLn "Incorrect input. Asking again."
                     askReply cmdPrompt
 
 withCompleter :: CompletionFunc (Cluedo IO)
@@ -432,7 +450,9 @@ enterTurn playerName = do
     liftIO $ putStrLn "Enter named cards"
     cards <- askCards
                 (cmdPrompt ("turn " ++ playerName))
-                $ \cs -> length cs == 3
+                $ \cs -> (length cs == 3) && (any isPieceCard cs)
+                                          && (any isRoomCard cs)
+                                          && (any isWeaponCard cs)
     playerCount <- lift $ length <$> players <$> get
     r <- sequence $ replicate (playerCount - 1) $ askReply
             (cmdPrompt ("turn " ++ playerName ++ " reply"))
