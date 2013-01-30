@@ -206,6 +206,12 @@ getCards p = map (first RoomCard) (rooms p)
           ++ map (first PieceCard) (pieces p)
           ++ map (first WeaponCard) (weapons p)
 
+getCard :: Card -> Player -> Status
+getCard EmptyCard _ = Unknown
+getCard UnknownCard _ = Unknown
+getCard c p = snd $ fromJust $ find ((c ==) . fst) (getCards p)
+                                -- at least one element is guaranteed.
+
 getPlayerCards :: Monad m => String -> Cluedo m (Maybe [(Card, Status)])
 getPlayerCards n = do
     st <- get
@@ -454,6 +460,26 @@ processLogEntry logEntry = do
 
             c -> setPlayerCard name c
 
+lookThrough :: [Player] -> Card -> Maybe (String, Card)
+lookThrough ps c =
+        let statuses = map (getCard c) ps
+            noCount = length $ filter (No ==) statuses in
+        if noCount == (pc - 1)
+            then let p = fromJust $ find ((No /=) . (getCard c)) ps
+                     in Just (name p, c)
+            else Nothing
+
+    where pc = length ps
+
+rectifyTable :: Monad m => Cluedo m ()
+rectifyTable = do
+    st <- get
+    let allPlayers = (envelope st) : (out st) : (players st)
+    forM_ (map (lookThrough allPlayers) allKnownCards) $ \v ->
+        case v of
+            Nothing -> return ()
+            Just (n, c) -> setPlayerCard n c
+
 enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
     liftIO $ putStrLn "Enter named cards"
@@ -469,6 +495,7 @@ enterTurn playerName = do
     lift $ processLogEntry logEntry
     st <- lift get
     lift $ put $ st {log = logEntry : log st}
+    lift rectifyTable
 
 reportError :: IOException -> InputT (Cluedo IO) ()
 reportError e = liftIO $ putStrLn $ "IO error " ++ (show e)
