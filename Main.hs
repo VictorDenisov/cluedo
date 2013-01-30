@@ -8,7 +8,7 @@ import Control.Monad (forM_)
 import Control.Arrow (first)
 
 import Data.List (intercalate, find, isPrefixOf)
-import Data.Maybe (fromJust)
+import Data.Maybe (isJust, fromJust)
 
 import System.Console.Haskeline ( InputT
                                 , Completion(..)
@@ -27,7 +27,7 @@ allCards = (show EmptyCard) : (show UnknownCard) : allKnownCards
 
 cardCount = length allKnownCards
 
-commandList = ["turn", "print"]
+commandList = ["setcard", "turn", "print"]
 
 printCommandList = ["log", "table"]
 
@@ -49,9 +49,9 @@ completeCommand (leftLine, _) = do
     let line = reverse leftLine
     let ws = words line
     let cmdName = head ws
+    names <- allNames
     case cmdName of
         "turn" -> do
-            names <- allNames
             if head leftLine == ' '
                 then if length ws >= 2
                         then return (leftLine, [])
@@ -62,6 +62,12 @@ completeCommand (leftLine, _) = do
             (' ', 2) -> return (leftLine, [])
             (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) printCommandList)
             (' ', 1) -> return (leftLine, buildCompletions $ printCommandList)
+        "setcard" -> case (head leftLine, length ws) of
+            (' ', 3) -> return (leftLine, [])
+            (_, 3) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCards)
+            (' ', 2) -> return (leftLine, buildCompletions allCards)
+            (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) names)
+            (' ', 1) -> return (leftLine, buildCompletions names)
         _ -> return (leftLine, [])
 
 basicCommandLineComplete :: MonadIO m => CompletionFunc (Cluedo m)
@@ -478,6 +484,12 @@ mainLoop = do
                           if nm `elem` playerNames
                               then (enterTurn nm) `catch` reportError
                               else liftIO $ putStrLn "Incorrect player's name"
+                "setcard" -> do
+                    let nm = ws !! 1
+                    let card = parseCard $ ws !! 2
+                    if (nm `elem` playerNames) && (isJust card)
+                        then lift $ setPlayerCard nm (fromJust card)
+                        else liftIO $ putStrLn "Error in player name or card."
                 "print" -> case ws !! 1 of
                     "log" -> do
                         logList <- lift $ map show <$> log <$> get
