@@ -30,7 +30,7 @@ allCardsStrings = (show EmptyCard) : (show UnknownCard) : allKnownCardsStrings
 
 cardCount = length allKnownCardsStrings
 
-commandList = ["setcard", "turn", "print"]
+commandList = ["rectify", "setcard", "turn", "print"]
 
 printCommandList = ["log", "table"]
 
@@ -471,14 +471,29 @@ lookThrough ps c =
 
     where pc = length ps
 
-rectifyTable :: Monad m => Cluedo m ()
-rectifyTable = do
+fixNobodyHasCard :: Monad m => Cluedo m ()
+fixNobodyHasCard = do
     st <- get
     let allPlayers = (envelope st) : (out st) : (players st)
     forM_ (map (lookThrough allPlayers) allKnownCards) $ \v ->
         case v of
             Nothing -> return ()
             Just (n, c) -> setPlayerCard n c
+
+fixPlayerHasAllCards :: Monad m => Cluedo m ()
+fixPlayerHasAllCards = do
+    st <- get
+    forM_ (players st) $ \p -> do
+        let yesCards = filter ((Yes ==) . snd) (getCards p)
+        let otherCards = filter ((Yes /=) . snd) (getCards p)
+        if (length yesCards) == ((cardCount - 3) `div` (length $ players st))
+            then mapM_ ((clearPlayerCard $ name p) . fst) otherCards
+            else return ()
+
+rectifyTable :: Monad m => Cluedo m ()
+rectifyTable = do
+    fixNobodyHasCard
+    fixPlayerHasAllCards
 
 enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
@@ -525,5 +540,6 @@ mainLoop = do
                         logList <- lift $ map show <$> log <$> get
                         liftIO $ putStrLn $ intercalate "\n" logList
                     "table" -> lift printTable
+                "rectify" -> lift rectifyTable
                 _      -> liftIO $ putStrLn "Unknown command"
     mainLoop
