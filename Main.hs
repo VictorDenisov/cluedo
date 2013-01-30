@@ -22,10 +22,13 @@ import System.Exit (exitSuccess)
 
 buildCompletions = map (\name -> Completion name name True)
 
-allKnownCards = map show allPieces ++ map show allRooms ++ map show allWeapons
-allCards = (show EmptyCard) : (show UnknownCard) : allKnownCards
+allKnownCards = map PieceCard allPieces ++ map RoomCard allRooms ++ map WeaponCard allWeapons
+allCards = (show EmptyCard) : (show UnknownCard) : allKnownCardsStrings
 
-cardCount = length allKnownCards
+allKnownCardsStrings = map show allPieces ++ map show allRooms ++ map show allWeapons
+allCardsStrings = (show EmptyCard) : (show UnknownCard) : allKnownCardsStrings
+
+cardCount = length allKnownCardsStrings
 
 commandList = ["setcard", "turn", "print"]
 
@@ -39,10 +42,10 @@ cardCompleter (leftLine, _) = do
     let line = reverse leftLine
     let ws = words line
     if length ws == 0
-        then return (leftLine, buildCompletions allCards)
+        then return (leftLine, buildCompletions allCardsStrings)
         else case head leftLine of
-                ' ' -> return (leftLine, buildCompletions allCards)
-                _ -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCards)
+                ' ' -> return (leftLine, buildCompletions allCardsStrings)
+                _ -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCardsStrings)
 
 completeCommand :: MonadIO m => CompletionFunc (Cluedo m)
 completeCommand (leftLine, _) = do
@@ -64,8 +67,8 @@ completeCommand (leftLine, _) = do
             (' ', 1) -> return (leftLine, buildCompletions $ printCommandList)
         "setcard" -> case (head leftLine, length ws) of
             (' ', 3) -> return (leftLine, [])
-            (_, 3) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCards)
-            (' ', 2) -> return (leftLine, buildCompletions allCards)
+            (_, 3) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCardsStrings)
+            (' ', 2) -> return (leftLine, buildCompletions allCardsStrings)
             (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) names)
             (' ', 1) -> return (leftLine, buildCompletions names)
         _ -> return (leftLine, [])
@@ -304,10 +307,10 @@ printTable = do
     st <- get
     let allPlayers = ((envelope st) : (players st)) ++ [(out st)]
     let printer getter piece = (intercalate "\t" $ map (show . (`getter` piece)) allPlayers)
-    let piecePrinter piece = 
+    let piecePrinter piece =
             liftIO $ putStrLn $ (show piece) ++ ":\t"
                                         ++ (printer hasPiece piece)
-    let roomPrinter room = 
+    let roomPrinter room =
             liftIO $ putStrLn $ (show room) ++ ":\t"
                                         ++ (printer hasRoom room)
     let weaponPrinter weapon =
@@ -397,10 +400,10 @@ replyComplete (leftLine, _) = do
     playerNames <- map name <$> players <$> get
     case (head leftLine, length ws) of
         (_, 0) -> return ("", buildCompletions playerNames)
-        (' ', 1) -> return (leftLine, buildCompletions allCards)
+        (' ', 1) -> return (leftLine, buildCompletions allCardsStrings)
         (_, 1) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter (line `isPrefixOf`) playerNames)
         (' ', 2) -> return (leftLine, [])
-        (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter (last ws `isPrefixOf`) allCards)
+        (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter (last ws `isPrefixOf`) allCardsStrings)
         (_, _) -> return (leftLine, [])
 
 askReply :: String -> InputT (Cluedo IO) Reply
