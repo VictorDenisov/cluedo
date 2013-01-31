@@ -17,7 +17,10 @@ import System.Console.Haskeline ( InputT
                                 , getInputLine)
 import System.Console.Haskeline.History (historyLines)
 import System.Console.Haskeline.Completion(CompletionFunc)
-import System.Console.Haskeline.MonadException(catch, MonadException, Exception, IOException)
+import System.Console.Haskeline.MonadException( catch
+                                              , MonadException
+                                              , Exception
+                                              , IOException)
 import System.Exit (exitSuccess)
 
 buildCompletions = map (\name -> Completion name name True)
