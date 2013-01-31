@@ -485,6 +485,31 @@ fixFullList pName cs count = do
         then mapM_ ((clearPlayerCard pName) . fst) otherCards
         else return ()
 
+fixPlusesList :: Monad m => String -> [(Card, Status)] -> Int -> Cluedo m ()
+fixPlusesList pName cs plusCount = do
+    let yesCards = filter ((Yes ==) . snd) cs
+    let unknownCards = filter ((Unknown ==) . snd) cs
+    if length yesCards + length unknownCards == plusCount
+        then mapM_ ((setPlayerCard pName) . fst) unknownCards
+        else return ()
+
+fixPlayerPluses :: Monad m => Cluedo m ()
+fixPlayerPluses = do
+    st <- get
+    forM_ (players st) $ \p ->
+        fixPlusesList (name p) (getCards p) ((cardCount - 3) `div` (length $ players st))
+
+fixCategoryPluses :: Monad m => Cluedo m ()
+fixCategoryPluses = do
+    st <- get
+    let env = envelope st
+    let pieceCards = map (first PieceCard) (pieces env)
+    fixPlusesList (name env) pieceCards 1
+    let weaponCards = map (first WeaponCard) (weapons env)
+    fixPlusesList (name env) weaponCards 1
+    let roomCards = map (first RoomCard) (rooms env)
+    fixPlusesList (name env) roomCards 1
+
 fixNobodyHasCard :: Monad m => Cluedo m ()
 fixNobodyHasCard = do
     st <- get
@@ -516,6 +541,8 @@ rectifyTable = do
     fixNobodyHasCard
     fixPlayerHasAllCards
     fixOneCardInCategory
+    fixPlayerPluses
+    fixCategoryPluses
 
 enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
