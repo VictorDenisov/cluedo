@@ -102,6 +102,7 @@ data Piece = Scarlett
              deriving  (Eq, Show, Read)
 
 allPieces = [Green, Mustard, Peacock, Plum, Scarlett, White]
+allPieceCards = map PieceCard allPieces
 
 data Weapon = Candle
             | Knife
@@ -112,6 +113,7 @@ data Weapon = Candle
               deriving (Eq, Show, Read)
 
 allWeapons = [Wrench, Candle, Knife, Revolver, Pipe, Rope]
+allWeaponCards = map WeaponCard allWeapons
 
 data Room = Kitchen
           | Billiard
@@ -127,6 +129,7 @@ data Room = Kitchen
 
 allRooms = [ Bathroom, Study, Dining, Billiard, Garage
            , Bedroom, Guestroom, Kitchen, Yard]
+allRoomCards = map RoomCard allRooms
 
 data Card = PieceCard Piece
           | WeaponCard Weapon
@@ -471,6 +474,14 @@ lookThrough ps c =
 
     where pc = length ps
 
+fixFullList :: Monad m => String -> [(Card, Status)] -> Int -> Cluedo m ()
+fixFullList pName cs count = do
+    let yesCards = filter ((Yes ==) . snd) cs
+    let otherCards = filter ((Yes /=) . snd) cs
+    if length yesCards == count
+        then mapM_ ((clearPlayerCard pName) . fst) otherCards
+        else return ()
+
 fixNobodyHasCard :: Monad m => Cluedo m ()
 fixNobodyHasCard = do
     st <- get
@@ -484,16 +495,24 @@ fixPlayerHasAllCards :: Monad m => Cluedo m ()
 fixPlayerHasAllCards = do
     st <- get
     forM_ (players st) $ \p -> do
-        let yesCards = filter ((Yes ==) . snd) (getCards p)
-        let otherCards = filter ((Yes /=) . snd) (getCards p)
-        if (length yesCards) == ((cardCount - 3) `div` (length $ players st))
-            then mapM_ ((clearPlayerCard $ name p) . fst) otherCards
-            else return ()
+        fixFullList (name p) (getCards p) ((cardCount - 3) `div` (length $ players st))
+
+fixOneCardInCategory :: Monad m => Cluedo m ()
+fixOneCardInCategory = do
+    st <- get
+    let env = envelope st
+    let pieceCards = map (first PieceCard) (pieces env)
+    fixFullList (name env) pieceCards 1
+    let weaponCards = map (first WeaponCard) (weapons env)
+    fixFullList (name env) weaponCards 1
+    let roomCards = map (first RoomCard) (rooms env)
+    fixFullList (name env) roomCards 1
 
 rectifyTable :: Monad m => Cluedo m ()
 rectifyTable = do
     fixNobodyHasCard
     fixPlayerHasAllCards
+    fixOneCardInCategory
 
 enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
@@ -532,7 +551,7 @@ mainLoop = do
                 "setcard" -> do
                     let nm = ws !! 1
                     let card = parseCard $ ws !! 2
-                    if (nm `elem` playerNames) && (isJust card)
+                    if (nm `elem` ("envelope" : playerNames)) && (isJust card)
                         then lift $ setPlayerCard nm (fromJust card)
                         else liftIO $ putStrLn "Error in player name or card."
                 "print" -> case ws !! 1 of
