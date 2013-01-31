@@ -4,7 +4,7 @@ import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
 import Control.Monad.State (MonadState(..))
 import Control.Monad.Trans (liftIO, lift)
 import Control.Monad.IO.Class (MonadIO)
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import Control.Arrow (first)
 
 import Data.List (intercalate, find, isPrefixOf)
@@ -153,6 +153,13 @@ isRoomCard :: Card -> Bool
 isRoomCard (RoomCard _) = True
 isRoomCard _ = False
 
+printCard :: Card -> String
+printCard EmptyCard = "EmptyCard"
+printCard UnknownCard = "UnknownCard"
+printCard (RoomCard r) = show r
+printCard (WeaponCard w) = show w
+printCard (PieceCard p) = show p
+
 parseCard :: String -> Maybe Card
 parseCard "EmptyCard" = Just EmptyCard
 parseCard "UnknownCard" = Just UnknownCard
@@ -168,7 +175,10 @@ parseCard s = case s `lookup` weaponPairs of
         roomPairs = ((map show allRooms) `zip` allRooms)
         piecePairs = ((map show allPieces) `zip` allPieces)
 
-data Reply = Reply String Card
+data Reply = Reply
+                { replier :: String
+                , repliedCard :: Card
+                }
              deriving Show
 
 data Status = Yes
@@ -561,8 +571,22 @@ enterTurn playerName = do
     lift $ put $ st {log = logEntry : log st}
     lift rectifyTable
 
+cardsShowedTo :: String -> [LogEntry] -> [Card]
+cardsShowedTo player log = concat $ (flip map) playerRequests $ \e ->
+        map repliedCard $ filter (("me" ==) . replier) (replies e)
+    where
+        playerRequests = filter ((player ==) . asker) log
+
 reportError :: IOException -> InputT (Cluedo IO) ()
 reportError e = liftIO $ putStrLn $ "IO error " ++ (show e)
+
+printShowedCards :: MonadIO m => String -> Cluedo m ()
+printShowedCards nm = when (nm /= "me") $ do
+    st <- get
+    let cardsShowed = cardsShowedTo nm (log st)
+    if null cardsShowed
+        then liftIO $ putStrLn "No cards showed earlier."
+        else liftIO $ putStrLn $ "Cards showed: " ++ (intercalate ", " $ map printCard cardsShowed)
 
 mainLoop :: InputT (Cluedo IO) ()
 mainLoop = do
@@ -576,7 +600,9 @@ mainLoop = do
             case head ws of
                 "turn" -> let nm = last ws in
                           if nm `elem` playerNames
-                              then (enterTurn nm) `catch` reportError
+                              then do
+                                lift $ printShowedCards nm
+                                (enterTurn nm) `catch` reportError
                               else liftIO $ putStrLn "Incorrect player's name"
                 "setcard" -> do
                     let nm = ws !! 1
