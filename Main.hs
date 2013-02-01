@@ -589,6 +589,15 @@ printShowedCards nm = when (nm /= "me") $ do
         then liftIO $ putStrLn "No cards showed earlier."
         else liftIO $ putStrLn $ "Cards showed: " ++ (intercalate ", " $ map printCard cardsShowed)
 
+printReply :: Reply -> String
+printReply (Reply name card) = name ++ "\t" ++ (printCard card)
+
+printLog :: LogEntry -> String
+printLog (LogEntry asker cardsAsked replies) =
+    asker ++ " \n"
+        ++ "    " ++ (intercalate " " $ map printCard cardsAsked) ++ "\n"
+        ++ "    " ++ (intercalate "\n    " $ map printReply replies)
+
 mainLoop :: InputT (Cluedo IO) ()
 mainLoop = do
     l <- getInputLine $ cmdPrompt ""
@@ -613,7 +622,7 @@ mainLoop = do
                         else liftIO $ putStrLn "Error in player name or card."
                 "print" -> case ws !! 1 of
                     "log" -> do
-                        logList <- lift $ map show <$> log <$> get
+                        logList <- lift $ map printLog <$> log <$> get
                         liftIO $ putStrLn $ intercalate "\n" logList
                     "table" -> lift printTable
                 "rectify" -> lift rectifyTable
