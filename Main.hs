@@ -20,7 +20,8 @@ import System.Console.Haskeline.Completion(CompletionFunc)
 import System.Console.Haskeline.MonadException( catch
                                               , MonadException
                                               , Exception
-                                              , IOException)
+                                              , IOException
+                                              , throwIO)
 import System.Exit (exitSuccess)
 
 buildCompletions = map (\name -> Completion name name True)
@@ -456,7 +457,7 @@ withCompleter c blc = do
     lift $ put $ st {cmdComplete = prevC}
     return a
 
-processLogEntry :: MonadIO m => LogEntry -> Cluedo m ()
+processLogEntry :: Monad m => LogEntry -> Cluedo m ()
 processLogEntry logEntry = do
     st <- get
     forM_ (replies logEntry) $ \(Reply name card) ->
@@ -466,8 +467,7 @@ processLogEntry logEntry = do
                 cards <- getPlayerCards name
                 case cards of
                     Nothing ->
-                        liftIO $ putStrLn
-                                    $ "error during getting cards of " ++ name
+                        error $ "error during getting cards of " ++ name
                     Just cs -> do
                         let exceptAbsent = filter ((No /=) . snd) $ filter ((\x -> x `elem` (cardsAsked logEntry)) . fst) cs
                         if length exceptAbsent == 1
@@ -548,6 +548,8 @@ fixOneCardInCategory = do
 
 rectifyTable :: Monad m => Cluedo m ()
 rectifyTable = do
+    st <- get
+    mapM_ processLogEntry (log st)
     fixNobodyHasCard
     fixPlayerHasAllCards
     fixOneCardInCategory
@@ -566,7 +568,6 @@ enterTurn playerName = do
     r <- sequence $ replicate (playerCount - 1) $ askReply
             (cmdPrompt ("turn " ++ playerName ++ " reply"))
     let logEntry = LogEntry playerName cards r
-    lift $ processLogEntry logEntry
     st <- lift get
     lift $ put $ st {log = logEntry : log st}
     lift rectifyTable
