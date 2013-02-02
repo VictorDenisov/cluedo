@@ -236,11 +236,24 @@ getPlayerCards n = do
         player <- find ((n ==) . name) (players st)
         return $ getCards player
 
-data LogEntry = LogEntry
+data LogEntry = TurnEntry
                     { asker      :: String
                     , cardsAsked :: [Card]
                     , replies    :: [Reply]
-                    } deriving (Show)
+                    }
+              | Suggestion
+                    { suggester :: String
+                    , cards     :: [Card]
+                    }
+                deriving (Show)
+
+isTurnEntry :: LogEntry -> Bool
+isTurnEntry (TurnEntry {}) = True
+isTurnEntry _ = False
+
+isSuggestion :: LogEntry -> Bool
+isSuggestion (Suggestion {}) = True
+isSuggestion _ = False
 
 data Table m = Table
     { players     :: [Player]
@@ -328,7 +341,7 @@ clearWeapon w (wv, st) = (wv, st)
 retrieveAskedCards :: Monad m => Cluedo m ([(String, [Card])])
 retrieveAskedCards = do
     st <- get
-    let pairs = map (\(LogEntry p cs _) -> (p, cs)) (log st)
+    let pairs = map (\(TurnEntry p cs _) -> (p, cs)) $ filter isTurnEntry (log st)
     let sortedPairs = sortBy (\x y -> fst x `compare` fst y) pairs
     let uniquePairs = groupBy (\x y -> fst x == fst y) sortedPairs
     return $ (flip map) uniquePairs $ \ls -> (fst $ head ls, concat $ map snd ls)
@@ -485,7 +498,7 @@ withCompleter c blc = do
     return a
 
 processLogEntry :: Monad m => LogEntry -> Cluedo m ()
-processLogEntry logEntry = do
+processLogEntry logEntry@(TurnEntry {})  = do
     st <- get
     forM_ (replies logEntry) $ \(Reply name card) ->
         case card of
@@ -502,6 +515,7 @@ processLogEntry logEntry = do
                             else return ()
 
             c -> setPlayerCard name c
+processLogEntry (Suggestion {}) = return ()
 
 lookThrough :: [Player] -> Card -> Maybe (String, Card)
 lookThrough ps c =
@@ -583,6 +597,11 @@ rectifyTable = do
     fixPlayerPluses
     fixCategoryPluses
 
+addLogEntry :: Monad m => LogEntry -> Cluedo m ()
+addLogEntry logEntry = do
+    st <- get
+    put $ st {log = logEntry : log st}
+
 enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
     liftIO $ putStrLn "Enter named cards"
@@ -594,16 +613,15 @@ enterTurn playerName = do
     playerCount <- lift $ length <$> players <$> get
     r <- sequence $ replicate (playerCount - 1) $ askReply
             (cmdPrompt ("turn " ++ playerName ++ " reply"))
-    let logEntry = LogEntry playerName cards r
-    st <- lift get
-    lift $ put $ st {log = logEntry : log st}
+    let logEntry = TurnEntry playerName cards r
+    lift $ addLogEntry logEntry
     lift rectifyTable
 
 cardsShowedTo :: String -> [LogEntry] -> [Card]
 cardsShowedTo player log = concat $ (flip map) playerRequests $ \e ->
         map repliedCard $ filter (("me" ==) . replier) (replies e)
     where
-        playerRequests = filter ((player ==) . asker) log
+        playerRequests = filter ((player ==) . asker) $ filter isTurnEntry log
 
 reportError :: IOException -> InputT (Cluedo IO) ()
 reportError e = liftIO $ putStrLn $ "IO error " ++ (show e)
@@ -620,10 +638,13 @@ printReply :: Reply -> String
 printReply (Reply name card) = name ++ "\t" ++ (printCard card)
 
 printLog :: LogEntry -> String
-printLog (LogEntry asker cardsAsked replies) =
+printLog (TurnEntry asker cardsAsked replies) =
     asker ++ " \n"
         ++ "    " ++ (intercalate " " $ map printCard cardsAsked) ++ "\n"
         ++ "    " ++ (intercalate "\n    " $ map printReply replies)
+printLog (Suggestion suggester cards) =
+    "suggest:\t" ++ suggester ++ " \n"
+        ++ "    " ++ (intercalate " " $ map printCard cards)
 
 mainLoop :: InputT (Cluedo IO) ()
 mainLoop = do
@@ -652,6 +673,8 @@ mainLoop = do
                         logList <- lift $ map printLog <$> log <$> get
                         liftIO $ putStrLn $ intercalate "\n" logList
                     "table" -> lift printTable
+                "suggest" ->
+                    lift $ addLogEntry $ Suggestion "me" []
                 "rectify" -> lift rectifyTable
                 _      -> liftIO $ putStrLn "Unknown command"
     mainLoop
