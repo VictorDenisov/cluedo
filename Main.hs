@@ -34,7 +34,7 @@ allCardsStrings = (show EmptyCard) : (show UnknownCard) : allKnownCardsStrings
 
 cardCount = length allKnownCardsStrings
 
-commandList = ["rectify", "setcard", "turn", "print"]
+commandList = ["rectify", "setcard", "turn", "print", "suggest"]
 
 printCommandList = ["log", "table"]
 
@@ -49,7 +49,12 @@ cardCompleter (leftLine, _) = do
         then return (leftLine, buildCompletions allCardsStrings)
         else case head leftLine of
                 ' ' -> return (leftLine, buildCompletions allCardsStrings)
-                _ -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCardsStrings)
+                _ -> return $ listCompleter leftLine (last ws) allCardsStrings
+
+listCompleter :: String -> String -> [String] -> (String, [Completion])
+listCompleter leftLine card list =
+    ( drop (length card) leftLine
+    , buildCompletions $ filter (card `isPrefixOf`) list)
 
 completeCommand :: MonadIO m => CompletionFunc (Cluedo m)
 completeCommand (leftLine, _) = do
@@ -64,17 +69,30 @@ completeCommand (leftLine, _) = do
                         then return (leftLine, [])
                         else do
                             return (leftLine, buildCompletions names)
-                else return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) names)
+                else return $ listCompleter leftLine (last ws) names
         "print" -> case (head leftLine, length ws) of
+            (' ', 1) -> return (leftLine, buildCompletions printCommandList)
             (' ', 2) -> return (leftLine, [])
-            (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) printCommandList)
-            (' ', 1) -> return (leftLine, buildCompletions $ printCommandList)
+            (_, 2) -> return $ listCompleter leftLine (last ws) printCommandList
+            (_, _) -> return (leftLine, [])
         "setcard" -> case (head leftLine, length ws) of
-            (' ', 3) -> return (leftLine, [])
-            (_, 3) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) allCardsStrings)
-            (' ', 2) -> return (leftLine, buildCompletions allCardsStrings)
-            (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter ((last ws) `isPrefixOf`) names)
             (' ', 1) -> return (leftLine, buildCompletions names)
+            (' ', 2) -> return (leftLine, buildCompletions allCardsStrings)
+            (_, 2) -> return $ listCompleter leftLine (last ws) names
+            (' ', 3) -> return (leftLine, [])
+            (_, 3) -> return $ listCompleter leftLine (last ws) allCardsStrings
+            (_, _) -> return (leftLine, [])
+        "suggest" -> case (head leftLine, length ws) of
+            (' ', 1) -> return (leftLine, buildCompletions names)
+            (' ', 2) -> return (leftLine, buildCompletions allCardsStrings)
+            (_, 2) -> return $ listCompleter leftLine (last ws) names
+            (' ', 3) -> return (leftLine, buildCompletions allCardsStrings)
+            (_, 3) -> return $ listCompleter leftLine (last ws) allCardsStrings
+            (' ', 4) -> return (leftLine, buildCompletions allCardsStrings)
+            (_, 4) -> return $ listCompleter leftLine (last ws) allCardsStrings
+            (' ', 5) -> return (leftLine, [])
+            (_, 5) -> return $ listCompleter leftLine (last ws) allCardsStrings
+            (_, _) -> return (leftLine, [])
         _ -> return (leftLine, [])
 
 basicCommandLineComplete :: MonadIO m => CompletionFunc (Cluedo m)
