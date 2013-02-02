@@ -393,20 +393,22 @@ askCards prompt cardsOk = withCompleter cardCompleter $ do
 
 askMyCards :: InputT (Cluedo IO) ()
 askMyCards = do
-    liftIO $ putStrLn $ "Please enter your cards"
     playerCount <- lift $ length <$> players <$> get
+    let cardNumber = ((cardCount - 3) `div` playerCount)
+    liftIO $ putStrLn $ "Please enter your cards (" ++ (show cardNumber) ++ ")"
     cards <- askCards
                 (cmdPrompt "")
-                $ \cs -> length cs == ((cardCount - 3) `div` playerCount)
+                $ \cs -> length cs == cardNumber
     lift $ mapM_ (setPlayerCard "me") cards
 
 askOutCards :: InputT (Cluedo IO) ()
 askOutCards = do
-    liftIO $ putStrLn $ "Please enter cards in out"
     playerCount <- lift $ length <$> players <$> get
+    let cardNumber = ((cardCount - 3) `rem` playerCount)
+    liftIO $ putStrLn $ "Please enter out (" ++ (show cardNumber) ++ ")"
     cards <- askCards
                 (cmdPrompt "")
-                $ \cs -> length cs == ((cardCount - 3) `rem` playerCount)
+                $ \cs -> length cs == cardNumber
     lift $ mapM_ (setPlayerCard "out") cards
 
 initialSetup :: InputT (Cluedo IO) ()
