@@ -7,7 +7,7 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad (forM_, when)
 import Control.Arrow (first)
 
-import Data.List (intercalate, find, isPrefixOf)
+import Data.List (intercalate, find, isPrefixOf, sortBy, groupBy)
 import Data.Maybe (isJust, fromJust)
 
 import System.Console.Haskeline ( InputT
@@ -325,20 +325,42 @@ clearWeapon :: Weapon -> (Weapon, Status) -> (Weapon, Status)
 clearWeapon w (wv, st) | w == wv = (wv, No)
 clearWeapon w (wv, st) = (wv, st)
 
+retrieveAskedCards :: Monad m => Cluedo m ([(String, [Card])])
+retrieveAskedCards = do
+    st <- get
+    let pairs = map (\(LogEntry p cs _) -> (p, cs)) (log st)
+    let sortedPairs = sortBy (\x y -> fst x `compare` fst y) pairs
+    let uniquePairs = groupBy (\x y -> fst x == fst y) sortedPairs
+    return $ (flip map) uniquePairs $ \ls -> (fst $ head ls, concat $ map snd ls)
+
+playerAskedCard :: [(String, [Card])] -> String -> Card -> Bool
+playerAskedCard ls pn c = case lookup pn ls of
+    Nothing -> False
+    Just cs -> c `elem` cs
+
 printTable :: MonadIO m => Cluedo m ()
 printTable = do
     st <- get
     let allPlayers = ((envelope st) : (players st)) ++ [(out st)]
-    let printer getter piece = (intercalate "\t" $ map (show . (`getter` piece)) allPlayers)
+    ls <- retrieveAskedCards
+    let isAskedCard p c = if playerAskedCard ls p c
+                            then "*"
+                            else " "
+    let printer getter piece card = intercalate "\t" $
+                                        map (\p -> show (p `getter` piece)
+                                                   ++ "  "
+                                                   ++ (isAskedCard (name p) card))
+                                            allPlayers
+
     let piecePrinter piece =
             liftIO $ putStrLn $ (show piece) ++ ":\t"
-                                        ++ (printer hasPiece piece)
+                                        ++ (printer hasPiece piece (PieceCard piece))
     let roomPrinter room =
             liftIO $ putStrLn $ (show room) ++ ":\t"
-                                        ++ (printer hasRoom room)
+                                        ++ (printer hasRoom room (RoomCard room))
     let weaponPrinter weapon =
             liftIO $ putStrLn $ (show weapon) ++ ":\t"
-                                        ++ (printer hasWeapon weapon)
+                                        ++ (printer hasWeapon weapon (WeaponCard weapon))
 
     liftIO $ putStrLn $ "\t" ++ (intercalate "\t" $ map name allPlayers)
     mapM_ piecePrinter allPieces
