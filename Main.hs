@@ -692,7 +692,7 @@ mainLoop = do
                         liftIO $ putStrLn $ intercalate "\n" logList
                     "table" -> lift printTable
                 "suggest" ->
-                    lift $ addLogEntry $ Suggestion "me" []
+                    lift $ addLogEntry $ Suggestion (ws !! 1) $ map (fromJust . parseCard) (drop 2 ws)
                 "rectify" -> lift rectifyTable
                 _      -> liftIO $ putStrLn "Unknown command"
     mainLoop
