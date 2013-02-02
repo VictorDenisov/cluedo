@@ -405,11 +405,14 @@ askOutCards :: InputT (Cluedo IO) ()
 askOutCards = do
     playerCount <- lift $ length <$> players <$> get
     let cardNumber = ((cardCount - 3) `rem` playerCount)
-    liftIO $ putStrLn $ "Please enter out (" ++ (show cardNumber) ++ ")"
-    cards <- askCards
-                (cmdPrompt "")
-                $ \cs -> length cs == cardNumber
-    lift $ mapM_ (setPlayerCard "out") cards
+    if cardNumber == 0
+        then liftIO $ putStrLn "Out is empty. No cards to be entered."
+        else do
+            liftIO $ putStrLn $ "Please enter out (" ++ (show cardNumber) ++ ")"
+            cards <- askCards
+                        (cmdPrompt "")
+                        $ \cs -> length cs == cardNumber
+            lift $ mapM_ (setPlayerCard "out") cards
 
 initialSetup :: InputT (Cluedo IO) ()
 initialSetup = do
