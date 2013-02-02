@@ -370,7 +370,7 @@ askCards :: String -> ([Card] -> Bool) -> InputT (Cluedo IO) [Card]
 askCards prompt cardsOk = withCompleter cardCompleter $ do
     l <- getInputLine prompt
     case l of
-        Nothing -> liftIO exitSuccess
+        Nothing -> fail "askCards aborted"
         Just "" -> again
         Just v ->  do
             let cardNames = words v
@@ -435,7 +435,7 @@ askReply cmdPrompt = withCompleter replyComplete $ do
     playerNames <- lift $ map name <$> players <$> get
     l <- getInputLine cmdPrompt
     case l of
-        Nothing -> liftIO exitSuccess
+        Nothing -> fail "askReply aborted"
         Just v -> do
             let ws = words v
             let card = parseCard $ last ws
@@ -467,7 +467,7 @@ processLogEntry logEntry = do
                 cards <- getPlayerCards name
                 case cards of
                     Nothing ->
-                        error $ "error during getting cards of " ++ name
+                        fail $ "error during getting cards of " ++ name
                     Just cs -> do
                         let exceptAbsent = filter ((No /=) . snd) $ filter ((\x -> x `elem` (cardsAsked logEntry)) . fst) cs
                         if length exceptAbsent == 1
