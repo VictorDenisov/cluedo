@@ -250,9 +250,12 @@ getCard c p = snd $ fromJust $ find ((c ==) . fst) (getCards p)
 getPlayerCards :: Monad m => String -> Cluedo m (Maybe [(Card, Status)])
 getPlayerCards n = do
     st <- get
-    return $ do
-        player <- find ((n ==) . name) (players st)
-        return $ getCards player
+    if n == "envelope"
+        then
+            return $ Just $ getCards $ envelope st
+        else return $ do
+            player <- find ((n ==) . name) (players st)
+            return $ getCards player
 
 data LogEntry = TurnEntry
                     { asker      :: String
@@ -533,7 +536,18 @@ processLogEntry logEntry@(TurnEntry {})  = do
                             else return ()
 
             c -> setPlayerCard name c
-processLogEntry (Suggestion {}) = return ()
+processLogEntry (Suggestion _ suggestedCards) = do
+    envelope <- getPlayerCards "envelope"
+    case envelope of
+        Nothing ->
+            fail "error during getting cards of envelope"
+        Just cs -> do
+            let cardsWithStatus = filter ((\x -> x `elem` (suggestedCards)) . fst) cs
+            let yesCards = filter ((Yes ==) . snd) cardsWithStatus
+            let questionCards = filter ((Unknown ==) . snd) cardsWithStatus
+            if length yesCards == 2
+                then clearPlayerCard "envelope" (fst $ head questionCards)
+                else return ()
 
 lookThrough :: [Player] -> Card -> Maybe (String, Card)
 lookThrough ps c =
