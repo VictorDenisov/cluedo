@@ -1,0 +1,25 @@
+- Installation instructions for cluedo game assistant -
+
+<https://github.com/VictorDenisov/cluedo>
+
+Last update: February 3, 2013
+
+REQUIREMENTS
+------------
+
+* GHC-7.4.1 - is recommended. Earlier versions are untested.
+* Cabal-1.17.0 - is recommended. Earlier versions are untested.
+
+RUNNING UNDER LINUX
+-------------------
+
+Run
+
+  # cabal configure
+  # cabal build.
+
+If you want to run cluedo without installation then use
+  # ./run.sh.
+
+If you want to install cluedo use:
+  # cabal install
