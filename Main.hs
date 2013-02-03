@@ -34,7 +34,7 @@ allCardsStrings = (show EmptyCard) : (show UnknownCard) : allKnownCardsStrings
 
 cardCount = length allKnownCardsStrings
 
-commandList = ["rectify", "setcard", "turn", "print", "suggest"]
+commandList = ["rectify", "setcard", "turn", "print", "accusate"]
 
 printCommandList = ["log", "table"]
 
@@ -82,7 +82,7 @@ completeCommand (leftLine, _) = do
             (' ', 3) -> return (leftLine, [])
             (_, 3) -> return $ listCompleter leftLine (last ws) allCardsStrings
             (_, _) -> return (leftLine, [])
-        "suggest" -> case (head leftLine, length ws) of
+        "accusate" -> case (head leftLine, length ws) of
             (' ', 1) -> return (leftLine, buildCompletions names)
             (' ', 2) -> return (leftLine, buildCompletions allCardsStrings)
             (_, 2) -> return $ listCompleter leftLine (last ws) names
@@ -262,7 +262,7 @@ data LogEntry = TurnEntry
                     , cardsAsked :: [Card]
                     , replies    :: [Reply]
                     }
-              | Suggestion
+              | Accusation
                     { suggester :: String
                     , cards     :: [Card]
                     }
@@ -272,9 +272,9 @@ isTurnEntry :: LogEntry -> Bool
 isTurnEntry (TurnEntry {}) = True
 isTurnEntry _ = False
 
-isSuggestion :: LogEntry -> Bool
-isSuggestion (Suggestion {}) = True
-isSuggestion _ = False
+isAccusation :: LogEntry -> Bool
+isAccusation (Accusation {}) = True
+isAccusation _ = False
 
 data Table m = Table
     { players     :: [Player]
@@ -536,7 +536,7 @@ processLogEntry logEntry@(TurnEntry {})  = do
                             else return ()
 
             c -> setPlayerCard name c
-processLogEntry (Suggestion _ suggestedCards) = do
+processLogEntry (Accusation _ suggestedCards) = do
     envelope <- getPlayerCards "envelope"
     case envelope of
         Nothing ->
@@ -674,8 +674,8 @@ printLog (TurnEntry asker cardsAsked replies) =
     asker ++ " \n"
         ++ "    " ++ (intercalate " " $ map printCard cardsAsked) ++ "\n"
         ++ "    " ++ (intercalate "\n    " $ map printReply replies)
-printLog (Suggestion suggester cards) =
-    "suggest:\t" ++ suggester ++ " \n"
+printLog (Accusation suggester cards) =
+    "accusation:\t" ++ suggester ++ " \n"
         ++ "    " ++ (intercalate " " $ map printCard cards)
 
 mainLoop :: InputT (Cluedo IO) ()
@@ -705,8 +705,8 @@ mainLoop = do
                         logList <- lift $ map printLog <$> log <$> get
                         liftIO $ putStrLn $ intercalate "\n" logList
                     "table" -> lift printTable
-                "suggest" ->
-                    lift $ addLogEntry $ Suggestion (ws !! 1) $ map (fromJust . parseCard) (drop 2 ws)
+                "accusate" ->
+                    lift $ addLogEntry $ Accusation (ws !! 1) $ map (fromJust . parseCard) (drop 2 ws)
                 "rectify" -> lift rectifyTable
                 _      -> liftIO $ putStrLn "Unknown command"
     mainLoop
