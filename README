@@ -1,1 +1,65 @@
-Cluedo game assistant.
+Cluedo board game assistant
+===========================
+<https://github.com/VictorDenisov/cluedo>
+
+Last update: February 3, 2013
+
+DESCRIPTION
+-----------
+
+This is an assistant of cluedo board game. It allows you to concentrate on the
+process of the game and leave logical inferences to the computer. Current
+version is for the game where if suggestion is made everyone should show a card.
+
+RUNNING THE ASSISTANT
+---------------------
+
+First you are asked a list of space separated names of other players. Then you
+are asked to enter your cards and if there are any reminder cards enter them.
+Initial table is printed and game starts. You can either enter a turn
+information of enter a suggestion.
+
+  TURN
+  ----
+
+  turn <player name>
+    <suggested cards>
+    <reply 1>
+    <reply 2>
+    ...
+    <reply n - 1>
+
+  Turn starts with entering turn command. Turn command has one argument - name
+  of the player who starts the turn. After the turn command is entered you are
+  asked to enter the cards suggested by the player. And then reply of every
+  player. After turn is completed the table of cards and players is updated. It
+  can be printed using print table command. Turn can be abourted using ctrl-d
+  keystorke.
+
+  Note: No validity check is made when reply is entered, except correctness of
+  cards' names.
+
+  ACCUSATION
+  ----------
+
+  accusation <player name> <card 1> <card 2> <card 3>
+
+  If anybody makes an accusation it can be entered using accusation command.
+  Parameters are name of the player who makes the accusation and cards in
+  accusation. If the accusation is successful then stop the game, otherwise it
+  is assumed unsuccessful and will be used later for logical inferences.
+
+  SET CARD
+  --------
+
+  setcard <player> <card>
+
+  If by some means you've learned a card use setcard command to set the card.
+
+  RECTIFY
+  -------
+
+  rectify
+
+  Rectify command runs a series of logical inferences. It can be useful from
+  time to time. When turn command is entered - rectify is invoked automatically.
