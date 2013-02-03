@@ -472,6 +472,7 @@ askOutCards = do
 
 initialSetup :: InputT (Cluedo IO) ()
 initialSetup = do
+    liftIO $ putStrLn "Cluedo board game assistant version 1.0\n"
     withCompleter emptyCompleter askPlayerNames
     askMyCards
     askOutCards
