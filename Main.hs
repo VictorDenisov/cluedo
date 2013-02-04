@@ -46,10 +46,10 @@ cardCompleter (leftLine, _) = do
     let line = reverse leftLine
     let ws = words line
     if length ws == 0
-        then return (leftLine, buildCompletions allCardsStrings)
+        then return (leftLine, buildCompletions allKnownCardsStrings)
         else case head leftLine of
-                ' ' -> return (leftLine, buildCompletions allCardsStrings)
-                _ -> return $ listCompleter leftLine (last ws) allCardsStrings
+                ' ' -> return (leftLine, buildCompletions allKnownCardsStrings)
+                _ -> return $ listCompleter leftLine (last ws) allKnownCardsStrings
 
 listCompleter :: String -> String -> [String] -> (String, [Completion])
 listCompleter leftLine card list =
@@ -77,21 +77,21 @@ completeCommand (leftLine, _) = do
             (_, _) -> return (leftLine, [])
         "setcard" -> case (head leftLine, length ws) of
             (' ', 1) -> return (leftLine, buildCompletions names)
-            (' ', 2) -> return (leftLine, buildCompletions allCardsStrings)
+            (' ', 2) -> return (leftLine, buildCompletions allKnownCardsStrings)
             (_, 2) -> return $ listCompleter leftLine (last ws) names
             (' ', 3) -> return (leftLine, [])
-            (_, 3) -> return $ listCompleter leftLine (last ws) allCardsStrings
+            (_, 3) -> return $ listCompleter leftLine (last ws) allKnownCardsStrings
             (_, _) -> return (leftLine, [])
         "accusate" -> case (head leftLine, length ws) of
             (' ', 1) -> return (leftLine, buildCompletions names)
-            (' ', 2) -> return (leftLine, buildCompletions allCardsStrings)
+            (' ', 2) -> return (leftLine, buildCompletions allKnownCardsStrings)
             (_, 2) -> return $ listCompleter leftLine (last ws) names
-            (' ', 3) -> return (leftLine, buildCompletions allCardsStrings)
-            (_, 3) -> return $ listCompleter leftLine (last ws) allCardsStrings
-            (' ', 4) -> return (leftLine, buildCompletions allCardsStrings)
-            (_, 4) -> return $ listCompleter leftLine (last ws) allCardsStrings
+            (' ', 3) -> return (leftLine, buildCompletions allKnownCardsStrings)
+            (_, 3) -> return $ listCompleter leftLine (last ws) allKnownCardsStrings
+            (' ', 4) -> return (leftLine, buildCompletions allKnownCardsStrings)
+            (_, 4) -> return $ listCompleter leftLine (last ws) allKnownCardsStrings
             (' ', 5) -> return (leftLine, [])
-            (_, 5) -> return $ listCompleter leftLine (last ws) allCardsStrings
+            (_, 5) -> return $ listCompleter leftLine (last ws) allKnownCardsStrings
             (_, _) -> return (leftLine, [])
         _ -> return (leftLine, [])
 
