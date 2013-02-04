@@ -427,7 +427,9 @@ askCards prompt cardsOk = withCompleter cardCompleter $ do
     l <- getInputLine prompt
     case l of
         Nothing -> fail "askCards aborted"
-        Just "" -> again
+        Just "" -> do
+            liftIO $ putStrLn "No cards entered. Asking again."
+            again
         Just v ->  do
             let cardNames = words v
             let cards = map parseCard cardNames
