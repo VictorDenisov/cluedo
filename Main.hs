@@ -26,13 +26,13 @@ import System.Exit (exitSuccess)
 
 buildCompletions = map (\name -> Completion name name True)
 
-allKnownCards = map PieceCard allPieces ++ map RoomCard allRooms ++ map WeaponCard allWeapons
-allCards = (show EmptyCard) : (show UnknownCard) : allKnownCardsStrings
+allKnownCards = allPieces ++ allRooms ++ allWeapons
+allCards = EmptyCard : UnknownCard : allKnownCards
 
-allKnownCardsStrings = map show allPieces ++ map show allRooms ++ map show allWeapons
-allCardsStrings = (show EmptyCard) : (show UnknownCard) : allKnownCardsStrings
+allKnownCardsStrings = map show allKnownCards
+allCardsStrings = map show allCards
 
-cardCount = length allKnownCardsStrings
+cardCount = length allKnownCards
 
 commandList = ["rectify", "setcard", "turn", "print", "accusate"]
 
@@ -84,7 +84,7 @@ completeCommand (leftLine, _) = do
                 case cards of
                     Nothing -> return (leftLine, []) -- list of cards is nothing if player name is unknown
                     Just cs -> do
-                        let unknowns = map (printCard . fst) $ filter ((Unknown ==) . snd) cs
+                        let unknowns = map (show . fst) $ filter ((Unknown ==) . snd) cs
                         return (leftLine, buildCompletions unknowns)
 
             (_, 2) -> return $ listCompleter leftLine (last ws) names
@@ -96,7 +96,7 @@ completeCommand (leftLine, _) = do
                 case cards of
                     Nothing -> return (leftLine, [])
                     Just cs -> do
-                        let unknowns = map (printCard . fst) $ filter ((Unknown ==) . snd) cs
+                        let unknowns = map (show . fst) $ filter ((Unknown ==) . snd) cs
                         return $ listCompleter leftLine (last ws) unknowns
 
 
@@ -134,29 +134,28 @@ cmdPrompt :: String -> String
 cmdPrompt "" = "(cluedo) "
 cmdPrompt s = "(cluedo) " ++ s ++ " # "
 
-data Piece = Scarlett
-           | Mustard
-           | White
-           | Green
-           | Peacock
-           | Plum
-             deriving  (Eq, Show, Read)
-
 allPieces = [Green, Mustard, Peacock, Plum, Scarlett, White]
-allPieceCards = map PieceCard allPieces
-
-data Weapon = Candle
-            | Knife
-            | Pipe
-            | Revolver
-            | Rope
-            | Wrench
-              deriving (Eq, Show, Read)
 
 allWeapons = [Wrench, Candle, Knife, Revolver, Pipe, Rope]
-allWeaponCards = map WeaponCard allWeapons
 
-data Room = Kitchen
+allRooms = [ Bathroom, Study, Dining, Billiard, Garage
+           , Bedroom, Guestroom, Kitchen, Yard]
+
+data Card = Scarlett
+          | Mustard
+          | White
+          | Green
+          | Peacock
+          | Plum
+
+          | Candle
+          | Knife
+          | Pipe
+          | Revolver
+          | Rope
+          | Wrench
+
+          | Kitchen
           | Billiard
           | Library
           | Dining
@@ -166,52 +165,22 @@ data Room = Kitchen
           | Bedroom
           | Yard
           | Guestroom
-            deriving (Eq, Show, Read)
 
-allRooms = [ Bathroom, Study, Dining, Billiard, Garage
-           , Bedroom, Guestroom, Kitchen, Yard]
-allRoomCards = map RoomCard allRooms
-
-data Card = PieceCard Piece
-          | WeaponCard Weapon
-          | RoomCard Room
           | UnknownCard
           | EmptyCard
             deriving (Eq, Show)
 
 isPieceCard :: Card -> Bool
-isPieceCard (PieceCard _) = True
-isPieceCard _ = False
+isPieceCard c = c `elem` allPieces
 
 isWeaponCard :: Card -> Bool
-isWeaponCard (WeaponCard _) = True
-isWeaponCard _ = False
+isWeaponCard c = c `elem` allWeapons
 
 isRoomCard :: Card -> Bool
-isRoomCard (RoomCard _) = True
-isRoomCard _ = False
-
-printCard :: Card -> String
-printCard EmptyCard = "EmptyCard"
-printCard UnknownCard = "UnknownCard"
-printCard (RoomCard r) = show r
-printCard (WeaponCard w) = show w
-printCard (PieceCard p) = show p
+isRoomCard c = c `elem` allRooms
 
 parseCard :: String -> Maybe Card
-parseCard "EmptyCard" = Just EmptyCard
-parseCard "UnknownCard" = Just UnknownCard
-parseCard s = case s `lookup` weaponPairs of
-            Just v -> Just $ WeaponCard v
-            Nothing -> case s `lookup` roomPairs of
-                        Just v -> Just $ RoomCard v
-                        Nothing -> case s `lookup` piecePairs of
-                                    Just v -> Just $ PieceCard v
-                                    Nothing -> Nothing
-    where
-        weaponPairs = ((map show allWeapons) `zip` allWeapons)
-        roomPairs = ((map show allRooms) `zip` allRooms)
-        piecePairs = ((map show allPieces) `zip` allPieces)
+parseCard s = s `lookup` ((map show allCards) `zip` allCards)
 
 data Reply = Reply
                 { replier :: String
@@ -231,39 +200,28 @@ instance Show Status where
 
 data Player = Player
                 { name    :: String
-                , rooms   :: [(Room, Status)]
-                , pieces  :: [(Piece, Status)]
-                , weapons :: [(Weapon, Status)]
+                , cards   :: [(Card, Status)]
                 }
 
+pieces :: Player -> [(Card, Status)]
+pieces p = filter (\(c,_) -> c `elem` allPieces) (cards p)
+
+weapons :: Player -> [(Card, Status)]
+weapons p = filter (\(c,_) -> c `elem` allWeapons) (cards p)
+
+rooms :: Player -> [(Card, Status)]
+rooms p = filter (\(c,_) -> c `elem` allRooms) (cards p)
+
 fullPlayer :: String -> Player
-fullPlayer name = Player name (allRooms `zip` (repeat Unknown))
-                              (allPieces `zip` (repeat Unknown))
-                              (allWeapons `zip` (repeat Unknown))
+fullPlayer name = Player name (allKnownCards `zip` (repeat Unknown))
 
 emptyPlayer :: String -> Player
-emptyPlayer name = Player name (allRooms `zip` (repeat No))
-                               (allPieces `zip` (repeat No))
-                               (allWeapons `zip` (repeat No))
-
-hasPiece :: Player -> Piece -> Status
-hasPiece player piece = snd $ fromJust $ find ((piece ==) . fst) (pieces player)
-
-hasRoom :: Player -> Room -> Status
-hasRoom player room = snd $ fromJust $ find ((room ==) . fst) (rooms player)
-
-hasWeapon :: Player -> Weapon -> Status
-hasWeapon player weapon =  snd $ fromJust $ find ((weapon ==) . fst) (weapons player)
-
-getCards :: Player -> [(Card, Status)]
-getCards p = map (first RoomCard) (rooms p)
-          ++ map (first PieceCard) (pieces p)
-          ++ map (first WeaponCard) (weapons p)
+emptyPlayer name = Player name (allKnownCards `zip` (repeat No))
 
 getCard :: Card -> Player -> Status
 getCard EmptyCard _ = Unknown
 getCard UnknownCard _ = Unknown
-getCard c p = snd $ fromJust $ find ((c ==) . fst) (getCards p)
+getCard c p = snd $ fromJust $ find ((c ==) . fst) (cards p)
                                 -- at least one element is guaranteed.
 
 getPlayerCards :: Monad m => String -> Cluedo m (Maybe [(Card, Status)])
@@ -271,20 +229,17 @@ getPlayerCards n = do
     st <- get
     if n == "envelope"
         then
-            return $ Just $ getCards $ envelope st
+            return $ Just $ cards $ envelope st
         else return $ do
             player <- find ((n ==) . name) (players st)
-            return $ getCards player
+            return $ cards player
 
 data LogEntry = TurnEntry
                     { asker      :: String
                     , cardsAsked :: [Card]
                     , replies    :: [Reply]
                     }
-              | Accusation
-                    { suggester :: String
-                    , cards     :: [Card]
-                    }
+              | Accusation String [Card]
                 deriving (Show)
 
 isTurnEntry :: LogEntry -> Bool
@@ -333,12 +288,12 @@ setPlayerCard n c = do
     setEnvelope $ setCard n c (envelope st)
 
 setCard :: String -> Card -> Player -> Player
-setCard n (PieceCard p) pl | n == name pl = pl {pieces = map (setPiece p) (pieces pl)}
-setCard n (PieceCard p) pl = pl {pieces = map (clearPiece p) (pieces pl)}
-setCard n (RoomCard r) pl | n == name pl = pl {rooms = map (setRoom r) (rooms pl)}
-setCard n (RoomCard r) pl = pl {rooms = map (clearRoom r) (rooms pl)}
-setCard n (WeaponCard w) pl | n == name pl = pl {weapons = map (setWeapon w) (weapons pl)}
-setCard n (WeaponCard w) pl = pl {weapons = map (clearWeapon w) (weapons pl)}
+setCard n c pl | n == name pl = pl {cards = map (setCardElem c) (cards pl)}
+setCard n c pl = pl {cards = map (clearCardElem c) (cards pl)}
+
+setCardElem :: Card -> (Card, Status) -> (Card, Status)
+setCardElem p (pv, st) | p == pv = (pv, Yes)
+setCardElem p (pv, st) = (pv, st)
 
 clearPlayerCard :: Monad m => String -> Card -> Cluedo m ()
 clearPlayerCard n c = do
@@ -347,36 +302,13 @@ clearPlayerCard n c = do
     setOut $ clearCard n c (out st)
     setEnvelope $ clearCard n c (envelope st)
 
-clearCard n (PieceCard p) pl | n == name pl = pl {pieces = map (clearPiece p) (pieces pl)}
-clearCard n (PieceCard p) pl = pl
-clearCard n (RoomCard r) pl | n == name pl = pl {rooms = map (clearRoom r) (rooms pl)}
-clearCard n (RoomCard r) pl  = pl
-clearCard n (WeaponCard w) pl | n == name pl = pl {weapons = map (clearWeapon w) (weapons pl)}
-clearCard n (WeaponCard w) pl  = pl
+clearCard :: String -> Card -> Player -> Player
+clearCard n c pl | n == name pl = pl {cards = map (clearCardElem c) (cards pl)}
+clearCard n c pl = pl
 
-setPiece :: Piece -> (Piece, Status) -> (Piece, Status)
-setPiece p (pv, st) | p == pv = (pv, Yes)
-setPiece p (pv, st) = (pv, st)
-
-clearPiece :: Piece -> (Piece, Status) -> (Piece, Status)
-clearPiece p (pv, st) | p == pv = (pv, No)
-clearPiece p (pv, st) = (pv, st)
-
-setRoom :: Room -> (Room, Status) -> (Room, Status)
-setRoom r (rv, st) | r == rv = (rv, Yes)
-setRoom r (rv, st) = (rv, st)
-
-clearRoom :: Room -> (Room, Status) -> (Room, Status)
-clearRoom r (rv, st) | r == rv = (rv, No)
-clearRoom r (rv, st) = (rv, st)
-
-setWeapon :: Weapon -> (Weapon, Status) -> (Weapon, Status)
-setWeapon w (wv, st) | w == wv = (wv, Yes)
-setWeapon w (wv, st) = (wv, st)
-
-clearWeapon :: Weapon -> (Weapon, Status) -> (Weapon, Status)
-clearWeapon w (wv, st) | w == wv = (wv, No)
-clearWeapon w (wv, st) = (wv, st)
+clearCardElem :: Card -> (Card, Status) -> (Card, Status)
+clearCardElem p (pv, st) | p == pv = (pv, No)
+clearCardElem p (pv, st) = (pv, st)
 
 retrieveAskedCards :: Monad m => Cluedo m ([(String, [Card])])
 retrieveAskedCards = do
@@ -399,28 +331,22 @@ printTable = do
     let isAskedCard p c = if playerAskedCard ls p c
                             then "*"
                             else " "
-    let printer getter piece card = intercalate "\t" $
-                                        map (\p -> show (p `getter` piece)
+    let printer getter card = intercalate "\t" $
+                                        map (\p -> show (getter card p)
                                                    ++ "  "
                                                    ++ (isAskedCard (name p) card))
                                             allPlayers
 
-    let piecePrinter piece =
-            liftIO $ putStrLn $ (show piece) ++ ":\t"
-                                        ++ (printer hasPiece piece (PieceCard piece))
-    let roomPrinter room =
-            liftIO $ putStrLn $ (show room) ++ ":\t"
-                                        ++ (printer hasRoom room (RoomCard room))
-    let weaponPrinter weapon =
-            liftIO $ putStrLn $ (show weapon) ++ ":\t"
-                                        ++ (printer hasWeapon weapon (WeaponCard weapon))
+    let cardPrinter card =
+            liftIO $ putStrLn $ (show card) ++ ":\t"
+                                        ++ (printer getCard card)
 
     liftIO $ putStrLn $ "\t" ++ (intercalate "\t" $ map name allPlayers)
-    mapM_ piecePrinter allPieces
+    mapM_ cardPrinter allPieces
     liftIO $ putStrLn ""
-    mapM_ weaponPrinter allWeapons
+    mapM_ cardPrinter allWeapons
     liftIO $ putStrLn ""
-    mapM_ roomPrinter allRooms
+    mapM_ cardPrinter allRooms
 
 main = evalStateT (runInputT
                         (Settings (commandLineComplete) Nothing True)
@@ -602,18 +528,15 @@ fixPlayerPluses :: Monad m => Cluedo m ()
 fixPlayerPluses = do
     st <- get
     forM_ (players st) $ \p ->
-        fixPlusesList (name p) (getCards p) ((cardCount - 3) `div` (length $ players st))
+        fixPlusesList (name p) (cards p) ((cardCount - 3) `div` (length $ players st))
 
 fixCategoryPluses :: Monad m => Cluedo m ()
 fixCategoryPluses = do
     st <- get
     let env = envelope st
-    let pieceCards = map (first PieceCard) (pieces env)
-    fixPlusesList (name env) pieceCards 1
-    let weaponCards = map (first WeaponCard) (weapons env)
-    fixPlusesList (name env) weaponCards 1
-    let roomCards = map (first RoomCard) (rooms env)
-    fixPlusesList (name env) roomCards 1
+    fixPlusesList (name env) (pieces env) 1
+    fixPlusesList (name env) (weapons env) 1
+    fixPlusesList (name env) (rooms env) 1
 
 fixNobodyHasCard :: Monad m => Cluedo m ()
 fixNobodyHasCard = do
@@ -628,18 +551,15 @@ fixPlayerHasAllCards :: Monad m => Cluedo m ()
 fixPlayerHasAllCards = do
     st <- get
     forM_ (players st) $ \p -> do
-        fixFullList (name p) (getCards p) ((cardCount - 3) `div` (length $ players st))
+        fixFullList (name p) (cards p) ((cardCount - 3) `div` (length $ players st))
 
 fixOneCardInCategory :: Monad m => Cluedo m ()
 fixOneCardInCategory = do
     st <- get
     let env = envelope st
-    let pieceCards = map (first PieceCard) (pieces env)
-    fixFullList (name env) pieceCards 1
-    let weaponCards = map (first WeaponCard) (weapons env)
-    fixFullList (name env) weaponCards 1
-    let roomCards = map (first RoomCard) (rooms env)
-    fixFullList (name env) roomCards 1
+    fixFullList (name env) (pieces env) 1
+    fixFullList (name env) (weapons env) 1
+    fixFullList (name env) (rooms env) 1
 
 rectifyTable :: Monad m => Cluedo m ()
 rectifyTable = do
@@ -686,19 +606,19 @@ printShowedCards nm = when (nm /= "me") $ do
     let cardsShowed = cardsShowedTo nm (log st)
     if null cardsShowed
         then liftIO $ putStrLn "No cards showed earlier."
-        else liftIO $ putStrLn $ "Cards showed: " ++ (intercalate ", " $ map printCard cardsShowed)
+        else liftIO $ putStrLn $ "Cards showed: " ++ (intercalate ", " $ map show cardsShowed)
 
 printReply :: Reply -> String
-printReply (Reply name card) = name ++ "\t" ++ (printCard card)
+printReply (Reply name card) = name ++ "\t" ++ (show card)
 
 printLog :: LogEntry -> String
 printLog (TurnEntry asker cardsAsked replies) =
     asker ++ " \n"
-        ++ "    " ++ (intercalate " " $ map printCard cardsAsked) ++ "\n"
+        ++ "    " ++ (intercalate " " $ map show cardsAsked) ++ "\n"
         ++ "    " ++ (intercalate "\n    " $ map printReply replies)
 printLog (Accusation suggester cards) =
     "accusation:\t" ++ suggester ++ " \n"
-        ++ "    " ++ (intercalate " " $ map printCard cards)
+        ++ "    " ++ (intercalate " " $ map show cards)
 
 mainLoop :: InputT (Cluedo IO) ()
 mainLoop = do
