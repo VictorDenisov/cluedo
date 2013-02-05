@@ -77,10 +77,29 @@ completeCommand (leftLine, _) = do
             (_, _) -> return (leftLine, [])
         "setcard" -> case (head leftLine, length ws) of
             (' ', 1) -> return (leftLine, buildCompletions names)
-            (' ', 2) -> return (leftLine, buildCompletions allKnownCardsStrings)
+
+            (' ', 2) -> do
+                let playerName = ws !! 1
+                cards <- getPlayerCards playerName
+                case cards of
+                    Nothing -> return (leftLine, []) -- list of cards is nothing if player name is unknown
+                    Just cs -> do
+                        let unknowns = map (printCard . fst) $ filter ((Unknown ==) . snd) cs
+                        return (leftLine, buildCompletions unknowns)
+
             (_, 2) -> return $ listCompleter leftLine (last ws) names
             (' ', 3) -> return (leftLine, [])
-            (_, 3) -> return $ listCompleter leftLine (last ws) allKnownCardsStrings
+
+            (_, 3) -> do
+                let playerName = ws !! 1
+                cards <- getPlayerCards playerName -- list of cards is nothing if player name is unknown
+                case cards of
+                    Nothing -> return (leftLine, [])
+                    Just cs -> do
+                        let unknowns = map (printCard . fst) $ filter ((Unknown ==) . snd) cs
+                        return $ listCompleter leftLine (last ws) unknowns
+
+
             (_, _) -> return (leftLine, [])
         "accusate" -> case (head leftLine, length ws) of
             (' ', 1) -> return (leftLine, buildCompletions names)
