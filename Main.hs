@@ -76,7 +76,7 @@ completeCommand (leftLine, _) = do
             (_, 2) -> return $ listCompleter leftLine (last ws) printCommandList
             (_, _) -> return (leftLine, [])
         "setcard" -> case (head leftLine, length ws) of
-            (' ', 1) -> return (leftLine, buildCompletions names)
+            (' ', 1) -> return (leftLine, buildCompletions ("envelope" : names))
 
             (' ', 2) -> do
                 let playerName = ws !! 1
@@ -84,10 +84,14 @@ completeCommand (leftLine, _) = do
                 case cards of
                     Nothing -> return (leftLine, []) -- list of cards is nothing if player name is unknown
                     Just cs -> do
-                        let unknowns = map (show . fst) $ filter ((Unknown ==) . snd) cs
+                        let unknowns = map (show . fst)
+                                                $ filter ((Unknown ==) . snd) cs
                         return (leftLine, buildCompletions unknowns)
 
-            (_, 2) -> return $ listCompleter leftLine (last ws) names
+            (_, 2) -> return $ listCompleter
+                                        leftLine
+                                        (last ws)
+                                        ("envelope" : names)
             (' ', 3) -> return (leftLine, [])
 
             (_, 3) -> do
@@ -620,6 +624,28 @@ printLog (Accusation suggester cards) =
     "accusation:\t" ++ suggester ++ " \n"
         ++ "    " ++ (intercalate " " $ map show cards)
 
+data Command = SetCardCommand String Card
+
+parseSetCardCommand :: (Functor m, Monad m)
+                    => [String] -> Cluedo m (Maybe Command)
+parseSetCardCommand ws = do
+    playerNames <- map name <$> players <$> get
+    let nm = ws !! 1
+    let parsedCard = parseCard $ ws !! 2
+    if not $ nm `elem` ("envelope" : playerNames)
+        then return Nothing
+        else do
+            cards <- getPlayerCards nm
+            case (parsedCard, cards) of
+                (Nothing, Nothing) -> return Nothing
+                (Nothing, Just _) -> return Nothing
+                (Just _, Nothing) -> return Nothing
+                (Just card, Just cs) -> do
+                    let unknowns = map fst $ filter ((Unknown ==) . snd) cs
+                    if card `elem` unknowns
+                        then return $ Just $ SetCardCommand nm card
+                        else return Nothing
+
 mainLoop :: InputT (Cluedo IO) ()
 mainLoop = do
     l <- getInputLine $ cmdPrompt ""
@@ -637,11 +663,12 @@ mainLoop = do
                                 (enterTurn nm) `catch` reportError
                               else liftIO $ putStrLn "Incorrect player's name"
                 "setcard" -> do
-                    let nm = ws !! 1
-                    let card = parseCard $ ws !! 2
-                    if (nm `elem` ("envelope" : playerNames)) && (isJust card)
-                        then lift $ setPlayerCard nm (fromJust card)
-                        else liftIO $ putStrLn "Error in player name or card."
+                    command <- lift $ parseSetCardCommand ws
+                    case command of
+                        Nothing -> liftIO
+                                    $ putStrLn "Error in player name or card."
+                        Just (SetCardCommand pname card) ->
+                            lift $ setPlayerCard pname card
                 "print" -> case ws !! 1 of
                     "log" -> do
                         logList <- lift $ map printLog <$> log <$> get
