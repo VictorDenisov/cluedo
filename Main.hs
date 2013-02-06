@@ -714,7 +714,9 @@ mainLoop = do
                 "print" -> case ws !! 1 of
                     "log" -> do
                         logList <- lift $ map printLog <$> log <$> get
-                        liftIO $ putStrLn $ intercalate "\n" logList
+                        if null logList
+                            then liftIO $ putStrLn "No log entries"
+                            else liftIO $ putStrLn $ intercalate "\n" logList
                     "table" -> lift printTable
                 "accusate" ->
                     lift $ addLogEntry
