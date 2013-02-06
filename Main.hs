@@ -49,7 +49,10 @@ cardCompleter (leftLine, _) = do
         then return (leftLine, buildCompletions allKnownCardsStrings)
         else case head leftLine of
                 ' ' -> return (leftLine, buildCompletions allKnownCardsStrings)
-                _ -> return $ listCompleter leftLine (last ws) allKnownCardsStrings
+                _ -> return $ listCompleter
+                                    leftLine
+                                    (last ws)
+                                    allKnownCardsStrings
 
 listCompleter :: String -> String -> [String] -> (String, [Completion])
 listCompleter leftLine card list =
@@ -82,7 +85,7 @@ completeCommand (leftLine, _) = do
                 let playerName = ws !! 1
                 cards <- getPlayerCards playerName
                 case cards of
-                    Nothing -> return (leftLine, []) -- list of cards is nothing if player name is unknown
+                    Nothing -> return (leftLine, [])
                     Just cs -> do
                         let unknowns = map (show . fst)
                                                 $ filter ((Unknown ==) . snd) cs
@@ -96,11 +99,12 @@ completeCommand (leftLine, _) = do
 
             (_, 3) -> do
                 let playerName = ws !! 1
-                cards <- getPlayerCards playerName -- list of cards is nothing if player name is unknown
+                cards <- getPlayerCards playerName
                 case cards of
                     Nothing -> return (leftLine, [])
                     Just cs -> do
-                        let unknowns = map (show . fst) $ filter ((Unknown ==) . snd) cs
+                        let unknowns = map (show . fst)
+                                           $ filter ((Unknown ==) . snd) cs
                         return $ listCompleter leftLine (last ws) unknowns
 
 
@@ -109,12 +113,23 @@ completeCommand (leftLine, _) = do
             (' ', 1) -> return (leftLine, buildCompletions names)
             (' ', 2) -> return (leftLine, buildCompletions allKnownCardsStrings)
             (_, 2) -> return $ listCompleter leftLine (last ws) names
-            (' ', 3) -> return (leftLine, buildCompletions allKnownCardsStrings)
-            (_, 3) -> return $ listCompleter leftLine (last ws) allKnownCardsStrings
-            (' ', 4) -> return (leftLine, buildCompletions allKnownCardsStrings)
-            (_, 4) -> return $ listCompleter leftLine (last ws) allKnownCardsStrings
+            (' ', 3) -> return ( leftLine
+                               ,buildCompletions allKnownCardsStrings)
+            (_, 3) -> return $ listCompleter
+                                        leftLine
+                                        (last ws)
+                                        allKnownCardsStrings
+            (' ', 4) -> return ( leftLine
+                               , buildCompletions allKnownCardsStrings)
+            (_, 4) -> return $ listCompleter
+                                        leftLine
+                                        (last ws)
+                                        allKnownCardsStrings
             (' ', 5) -> return (leftLine, [])
-            (_, 5) -> return $ listCompleter leftLine (last ws) allKnownCardsStrings
+            (_, 5) -> return $ listCompleter
+                                        leftLine
+                                        (last ws)
+                                        allKnownCardsStrings
             (_, _) -> return (leftLine, [])
         _ -> return (leftLine, [])
 
@@ -126,7 +141,10 @@ basicCommandLineComplete a@(leftLine, _) = do
         0 -> return (leftLine, buildCompletions commandList)
         1 -> if head leftLine == ' '
                 then completeCommand a
-                else return ("", buildCompletions $ filter ((last ws) `isPrefixOf`) commandList)
+                else return ("", buildCompletions
+                                    $ filter
+                                        ((last ws) `isPrefixOf`)
+                                        commandList)
         v -> completeCommand a
 
 commandLineComplete :: (MonadIO m, Functor m) => CompletionFunc (Cluedo m)
@@ -317,10 +335,12 @@ clearCardElem p (pv, st) = (pv, st)
 retrieveAskedCards :: Monad m => Cluedo m ([(String, [Card])])
 retrieveAskedCards = do
     st <- get
-    let pairs = map (\(TurnEntry p cs _) -> (p, cs)) $ filter isTurnEntry (log st)
+    let pairs = map (\(TurnEntry p cs _) -> (p, cs))
+                    $ filter isTurnEntry (log st)
     let sortedPairs = sortBy (\x y -> fst x `compare` fst y) pairs
     let uniquePairs = groupBy (\x y -> fst x == fst y) sortedPairs
-    return $ (flip map) uniquePairs $ \ls -> (fst $ head ls, concat $ map snd ls)
+    return $ (flip map) uniquePairs
+                            $ \ls -> (fst $ head ls, concat $ map snd ls)
 
 playerAskedCard :: [(String, [Card])] -> String -> Card -> Bool
 playerAskedCard ls pn c = case lookup pn ls of
@@ -335,11 +355,11 @@ printTable = do
     let isAskedCard p c = if playerAskedCard ls p c
                             then "*"
                             else " "
-    let printer getter card = intercalate "\t" $
-                                        map (\p -> show (getter card p)
-                                                   ++ "  "
-                                                   ++ (isAskedCard (name p) card))
-                                            allPlayers
+    let printer getter card = intercalate "\t"
+                                    $ map (\p -> show (getter card p)
+                                                 ++ "  "
+                                                 ++ (isAskedCard (name p) card))
+                                          allPlayers
 
     let cardPrinter card =
             liftIO $ putStrLn $ (show card) ++ ":\t"
@@ -369,7 +389,8 @@ askPlayerNames = do
     case l of
         Nothing -> liftIO exitSuccess
         Just "" -> askPlayerNames
-        Just v ->  lift $ setPlayers $ (emptyPlayer "me") : (map fullPlayer (words v))
+        Just v ->  lift $ setPlayers
+                            $ (emptyPlayer "me") : (map fullPlayer (words v))
 
 askCards :: String -> ([Card] -> Bool) -> InputT (Cluedo IO) [Card]
 askCards prompt cardsOk = withCompleter cardCompleter $ do
@@ -438,9 +459,13 @@ replyComplete (leftLine, _) = do
     case (head leftLine, length ws) of
         (_, 0) -> return ("", buildCompletions playerNames)
         (' ', 1) -> return (leftLine, buildCompletions allCardsStrings)
-        (_, 1) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter (line `isPrefixOf`) playerNames)
+        (_, 1) -> return ( drop (length $ last ws) leftLine
+                         , buildCompletions
+                                $ filter (line `isPrefixOf`) playerNames)
         (' ', 2) -> return (leftLine, [])
-        (_, 2) -> return (drop (length $ last ws) leftLine, buildCompletions $ filter (last ws `isPrefixOf`) allCardsStrings)
+        (_, 2) -> return ( drop (length $ last ws) leftLine
+                         , buildCompletions
+                                $ filter (last ws `isPrefixOf`) allCardsStrings)
         (_, _) -> return (leftLine, [])
 
 askReply :: String -> InputT (Cluedo IO) Reply
@@ -483,7 +508,13 @@ processLogEntry logEntry@(TurnEntry {})  = do
                     Nothing ->
                         fail $ "error during getting cards of " ++ name
                     Just cs -> do
-                        let exceptAbsent = filter ((No /=) . snd) $ filter ((\x -> x `elem` (cardsAsked logEntry)) . fst) cs
+                        let exceptAbsent
+                                = filter
+                                    ((No /=) . snd)
+                                    $ filter
+                                        ((\x -> x `elem` (cardsAsked logEntry))
+                                            . fst)
+                                        cs
                         if length exceptAbsent == 1
                             then setPlayerCard name (fst $ head exceptAbsent)
                             else return ()
@@ -495,7 +526,9 @@ processLogEntry (Accusation _ suggestedCards) = do
         Nothing ->
             fail "error during getting cards of envelope"
         Just cs -> do
-            let cardsWithStatus = filter ((\x -> x `elem` (suggestedCards)) . fst) cs
+            let cardsWithStatus = filter
+                                    ((\x -> x `elem` (suggestedCards)) . fst)
+                                    cs
             let yesCards = filter ((Yes ==) . snd) cardsWithStatus
             let questionCards = filter ((Unknown ==) . snd) cardsWithStatus
             if length yesCards == 2
@@ -533,7 +566,10 @@ fixPlayerPluses :: Monad m => Cluedo m ()
 fixPlayerPluses = do
     st <- get
     forM_ (players st) $ \p ->
-        fixPlusesList (name p) (cards p) ((cardCount - 3) `div` (length $ players st))
+        fixPlusesList
+                (name p)
+                (cards p)
+                ((cardCount - 3) `div` (length $ players st))
 
 fixCategoryPluses :: Monad m => Cluedo m ()
 fixCategoryPluses = do
@@ -556,7 +592,10 @@ fixPlayerHasAllCards :: Monad m => Cluedo m ()
 fixPlayerHasAllCards = do
     st <- get
     forM_ (players st) $ \p -> do
-        fixFullList (name p) (cards p) ((cardCount - 3) `div` (length $ players st))
+        fixFullList
+                (name p)
+                (cards p)
+                ((cardCount - 3) `div` (length $ players st))
 
 fixOneCardInCategory :: Monad m => Cluedo m ()
 fixOneCardInCategory = do
@@ -611,7 +650,9 @@ printShowedCards nm = when (nm /= "me") $ do
     let cardsShowed = cardsShowedTo nm (log st)
     if null cardsShowed
         then liftIO $ putStrLn "No cards showed earlier."
-        else liftIO $ putStrLn $ "Cards showed: " ++ (intercalate ", " $ map show cardsShowed)
+        else liftIO $ putStrLn
+                         $ "Cards showed: "
+                           ++ (intercalate ", " $ map show cardsShowed)
 
 printReply :: Reply -> String
 printReply (Reply name card) = name ++ "\t" ++ (show card)
@@ -676,7 +717,9 @@ mainLoop = do
                         liftIO $ putStrLn $ intercalate "\n" logList
                     "table" -> lift printTable
                 "accusate" ->
-                    lift $ addLogEntry $ Accusation (ws !! 1) $ map (fromJust . parseCard) (drop 2 ws)
+                    lift $ addLogEntry
+                                $ Accusation (ws !! 1)
+                                        $ map (fromJust . parseCard) (drop 2 ws)
                 "rectify" -> lift rectifyTable
                 _      -> liftIO $ putStrLn "Unknown command"
     mainLoop
