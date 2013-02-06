@@ -405,7 +405,8 @@ askMyCards = do
     liftIO $ putStrLn $ "Please enter your cards (" ++ (show cardNumber) ++ ")"
     cards <- askCards
                 (cmdPrompt "")
-                $ \cs -> length cs == cardNumber
+                $ \cs -> (length cs == cardNumber)
+                      && (all (`elem` allKnownCards) cs)
     lift $ mapM_ (setPlayerCard "me") cards
 
 askOutCards :: InputT (Cluedo IO) ()
