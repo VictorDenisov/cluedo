@@ -7,7 +7,7 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad (forM_, when)
 import Control.Arrow (first)
 
-import Data.List (intercalate, find, isPrefixOf, sortBy, groupBy)
+import Data.List (intercalate, find, isPrefixOf, sortBy, groupBy, intersect)
 import Data.Maybe (isJust, fromJust)
 
 import System.Console.Haskeline ( InputT
@@ -237,9 +237,6 @@ rooms p = filter (\(c,_) -> c `elem` allRooms) (cards p)
 fullPlayer :: String -> Player
 fullPlayer name = Player name (allKnownCards `zip` (repeat Unknown))
 
-emptyPlayer :: String -> Player
-emptyPlayer name = Player name (allKnownCards `zip` (repeat No))
-
 getCard :: Card -> Player -> Status
 getCard EmptyCard _ = Unknown
 getCard UnknownCard _ = Unknown
@@ -376,7 +373,7 @@ main = evalStateT (runInputT
                         (Settings (commandLineComplete) Nothing True)
                         (initialSetup >> mainLoop))
                     (Table { players     = []
-                           , out         = emptyPlayer "out"
+                           , out         = fullPlayer "out"
                            , envelope    = fullPlayer "envelope"
                            , cmdComplete = basicCommandLineComplete
                            , log         = []
@@ -390,7 +387,7 @@ askPlayerNames = do
         Nothing -> liftIO exitSuccess
         Just "" -> askPlayerNames
         Just v ->  lift $ setPlayers
-                            $ (emptyPlayer "me") : (map fullPlayer (words v))
+                            $ (fullPlayer "me") : (map fullPlayer (words v))
 
 askCards :: String -> ([Card] -> Bool) -> InputT (Cluedo IO) [Card]
 askCards prompt cardsOk = withCompleter cardCompleter $ do
@@ -449,27 +446,46 @@ initialSetup = do
     withCompleter emptyCompleter askPlayerNames
     askMyCards
     askOutCards
+    lift $ rectifyTable
     lift printTable
 
-replyComplete :: (MonadIO m, Functor m) => CompletionFunc (Cluedo m)
-replyComplete (leftLine, _) = do
+replyComplete :: (MonadIO m, Functor m) => [Card] -> CompletionFunc (Cluedo m)
+replyComplete cardsAsked (leftLine, _) = do
     let line = reverse leftLine
     let ws = words line
     playerNames <- map name <$> players <$> get
     case (head leftLine, length ws) of
         (_, 0) -> return ("", buildCompletions playerNames)
-        (' ', 1) -> return (leftLine, buildCompletions allCardsStrings)
+        (' ', 1) -> do
+            let playerName = head ws
+            cards <- getPlayerCards playerName
+            case cards of
+                Nothing -> return (leftLine, [])
+                Just cs -> do
+                    let havingCards = map fst $ filter ((No /=) . snd) cs
+                    let canBeAnsweredCards = cardsAsked `intersect` havingCards
+                    let res = map show $ EmptyCard : UnknownCard : canBeAnsweredCards
+                    return (leftLine, buildCompletions res)
         (_, 1) -> return ( drop (length $ last ws) leftLine
                          , buildCompletions
                                 $ filter (line `isPrefixOf`) playerNames)
         (' ', 2) -> return (leftLine, [])
-        (_, 2) -> return ( drop (length $ last ws) leftLine
-                         , buildCompletions
-                                $ filter (last ws `isPrefixOf`) allCardsStrings)
+        (_, 2) -> do
+            let playerName = head ws
+            cards <- getPlayerCards playerName
+            case cards of
+                Nothing -> return (leftLine, [])
+                Just cs -> do
+                    let havingCards = map fst $ filter ((No /=) . snd) cs
+                    let canBeAnsweredCards = cardsAsked `intersect` havingCards
+                    let res = map show $ EmptyCard : UnknownCard : canBeAnsweredCards
+                    return ( drop (length $ last ws) leftLine
+                          , buildCompletions
+                                $ filter (last ws `isPrefixOf`) res)
         (_, _) -> return (leftLine, [])
 
-askReply :: String -> InputT (Cluedo IO) Reply
-askReply cmdPrompt = withCompleter replyComplete $ do
+askReply :: String -> [Card] -> InputT (Cluedo IO) Reply
+askReply cmdPrompt cardsAsked = withCompleter (replyComplete cardsAsked) $ do
     liftIO $ putStrLn "Enter reply"
     playerNames <- lift $ map name <$> players <$> get
     l <- getInputLine cmdPrompt
@@ -482,7 +498,7 @@ askReply cmdPrompt = withCompleter replyComplete $ do
                 (True, Just c) -> return $ Reply (head ws) c
                 _ -> do
                     liftIO $ putStrLn "Incorrect input. Asking again."
-                    askReply cmdPrompt
+                    askReply cmdPrompt cardsAsked
 
 withCompleter :: CompletionFunc (Cluedo IO)
               -> InputT (Cluedo IO) a
@@ -597,6 +613,15 @@ fixPlayerHasAllCards = do
                 (cards p)
                 ((cardCount - 3) `div` (length $ players st))
 
+fixOutHasAllCards :: Monad m => Cluedo m ()
+fixOutHasAllCards = do
+    st <- get
+    let ot = out st
+    fixFullList
+        "out"
+        (cards ot)
+        ((cardCount - 3) `rem` (length $ players st))
+
 fixOneCardInCategory :: Monad m => Cluedo m ()
 fixOneCardInCategory = do
     st <- get
@@ -609,6 +634,7 @@ rectifyTable :: Monad m => Cluedo m ()
 rectifyTable = do
     st <- get
     mapM_ processLogEntry (log st)
+    fixOutHasAllCards
     fixNobodyHasCard
     fixPlayerHasAllCards
     fixOneCardInCategory
@@ -631,6 +657,7 @@ enterTurn playerName = do
     playerCount <- lift $ length <$> players <$> get
     r <- sequence $ replicate (playerCount - 1) $ askReply
             (cmdPrompt ("turn " ++ playerName ++ " reply"))
+            cards
     let logEntry = TurnEntry playerName cards r
     lift $ addLogEntry logEntry
     lift rectifyTable
