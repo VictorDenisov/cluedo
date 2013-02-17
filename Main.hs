@@ -551,16 +551,14 @@ processLogEntry (Accusation _ suggestedCards) = do
                 then clearPlayerCard "envelope" (fst $ head questionCards)
                 else return ()
 
-lookThrough :: [Player] -> Card -> Maybe (String, Card)
-lookThrough ps c =
+findPlayerPossiblyHasCard :: [Player] -> Card -> Maybe (String, Card)
+findPlayerPossiblyHasCard ps c =
         let statuses = map (getCard c) ps
             noCount = length $ filter (No ==) statuses in
-        if noCount == (pc - 1)
+        if noCount == (length ps - 1)
             then let p = fromJust $ find ((No /=) . (getCard c)) ps
                      in Just (name p, c)
             else Nothing
-
-    where pc = length ps
 
 fixFullList :: Monad m => String -> [(Card, Status)] -> Int -> Cluedo m ()
 fixFullList pName cs count = do
@@ -599,7 +597,7 @@ fixNobodyHasCard :: Monad m => Cluedo m ()
 fixNobodyHasCard = do
     st <- get
     let allPlayers = (envelope st) : (out st) : (players st)
-    forM_ (map (lookThrough allPlayers) allKnownCards) $ \v ->
+    forM_ (map (findPlayerPossiblyHasCard allPlayers) allKnownCards) $ \v ->
         case v of
             Nothing -> return ()
             Just (n, c) -> setPlayerCard n c
