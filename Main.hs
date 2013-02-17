@@ -237,10 +237,10 @@ rooms p = filter (\(c,_) -> c `elem` allRooms) (cards p)
 fullPlayer :: String -> Player
 fullPlayer name = Player name (allKnownCards `zip` (repeat Unknown))
 
-getCard :: Card -> Player -> Status
-getCard EmptyCard _ = Unknown
-getCard UnknownCard _ = Unknown
-getCard c p = snd $ fromJust $ find ((c ==) . fst) (cards p)
+getCardStatus :: Card -> Player -> Status
+getCardStatus EmptyCard _ = Unknown
+getCardStatus UnknownCard _ = Unknown
+getCardStatus c p = snd $ fromJust $ find ((c ==) . fst) (cards p)
                                 -- at least one element is guaranteed.
 
 getPlayerCards :: Monad m => String -> Cluedo m (Maybe [(Card, Status)])
@@ -360,7 +360,7 @@ printTable = do
 
     let cardPrinter card =
             liftIO $ putStrLn $ (show card) ++ ":\t"
-                                        ++ (printer getCard card)
+                                        ++ (printer getCardStatus card)
 
     liftIO $ putStrLn $ "\t" ++ (intercalate "\t" $ map name allPlayers)
     mapM_ cardPrinter allPieces
@@ -553,10 +553,10 @@ processLogEntry (Accusation _ suggestedCards) = do
 
 findPlayerPossiblyHasCard :: [Player] -> Card -> Maybe (String, Card)
 findPlayerPossiblyHasCard ps c =
-        let statuses = map (getCard c) ps
+        let statuses = map (getCardStatus c) ps
             noCount = length $ filter (No ==) statuses in
         if noCount == (length ps - 1)
-            then let p = fromJust $ find ((No /=) . (getCard c)) ps
+            then let p = fromJust $ find ((No /=) . (getCardStatus c)) ps
                      in Just (name p, c)
             else Nothing
 
