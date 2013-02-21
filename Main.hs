@@ -1,11 +1,11 @@
 import Prelude hiding (log, catch)
 import Control.Applicative ((<$>))
+import Control.Arrow (first)
 import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
-import Control.Monad.State (MonadState(..))
 import Control.Monad.Trans (liftIO, lift)
+import Control.Monad.State (MonadState(..))
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad (forM_, when)
-import Control.Arrow (first)
 
 import Data.List (intercalate, find, isPrefixOf, sortBy, groupBy, intersect)
 import Data.Maybe (isJust, fromJust, catMaybes)
@@ -23,6 +23,62 @@ import System.Console.Haskeline.MonadException( catch
                                               , IOException
                                               , throwIO)
 import System.Exit (exitSuccess)
+
+main = evalStateT (runInputT (Settings (commandLineComplete) Nothing True)
+                             (initialSetup >> mainLoop))
+                  (Table { players     = []
+                         , out         = fullPlayer "out"
+                         , envelope    = fullPlayer "envelope"
+                         , cmdComplete = basicCommandLineComplete
+                         , log         = []
+                         })
+
+initialSetup :: InputT (Cluedo IO) ()
+initialSetup = do
+    liftIO $ putStrLn "Cluedo board game assistant version 1.0\n"
+    withCompleter emptyCompleter askPlayerNames
+    askMyCards
+    askOutCards
+    lift rectifyTable
+    lift printTable
+
+mainLoop :: InputT (Cluedo IO) ()
+mainLoop = do
+    l <- getInputLine $ cmdPrompt ""
+    playerNames <- lift $ map name <$> players <$> get
+    case l of
+        Nothing -> liftIO exitSuccess
+        Just "" -> mainLoop
+        Just v  -> do
+            let ws = words v
+            case head ws of
+                "turn" -> let nm = last ws in
+                          if nm `elem` playerNames
+                              then do
+                                lift $ printShowedCards nm
+                                (enterTurn nm) `catch` reportError
+                              else liftIO $ putStrLn "Incorrect player's name"
+                "setcard" -> do
+                    command <- lift $ parseSetCardCommand ws
+                    case command of
+                        Just (SetCardCommand pname card) ->
+                            lift $ setPlayerCard pname card
+                        Nothing -> liftIO
+                                    $ putStrLn "Error in player name or card."
+                "print" -> case ws !! 1 of
+                    "log" -> do
+                        logList <- lift $ map printLog <$> log <$> get
+                        if null logList
+                            then liftIO $ putStrLn "No log entries"
+                            else liftIO $ putStrLn $ intercalate "\n" logList
+                    "table" -> lift printTable
+                "accusate" ->
+                    lift $ addLogEntry
+                                $ Accusation (ws !! 1)
+                                        $ map (fromJust . parseCard) (drop 2 ws)
+                "rectify" -> lift rectifyTable
+                _      -> liftIO $ putStrLn "Unknown command"
+    mainLoop
 
 buildCompletions = map (\name -> Completion name name True)
 
@@ -389,16 +445,6 @@ printTable = do
     liftIO $ putStrLn ""
     mapM_ cardPrinter allRooms
 
-main = evalStateT (runInputT
-                        (Settings (commandLineComplete) Nothing True)
-                        (initialSetup >> mainLoop))
-                    (Table { players     = []
-                           , out         = fullPlayer "out"
-                           , envelope    = fullPlayer "envelope"
-                           , cmdComplete = basicCommandLineComplete
-                           , log         = []
-                           })
-
 askPlayerNames :: InputT (Cluedo IO) ()
 askPlayerNames = do
     liftIO $ putStrLn $ "Please enter players names"
@@ -459,15 +505,6 @@ askOutCards = do
                         (cmdPrompt "")
                         $ \cs -> length cs == cardNumber
             lift $ mapM_ (setPlayerCard "out") cards
-
-initialSetup :: InputT (Cluedo IO) ()
-initialSetup = do
-    liftIO $ putStrLn "Cluedo board game assistant version 1.0\n"
-    withCompleter emptyCompleter askPlayerNames
-    askMyCards
-    askOutCards
-    lift $ rectifyTable
-    lift printTable
 
 replyComplete :: (MonadIO m, Functor m) => [Card] -> CompletionFunc (Cluedo m)
 replyComplete cardsAsked (leftLine, _) = do
@@ -732,41 +769,3 @@ parseSetCardCommand ws = do
                     if card `elem` unknowns
                         then return $ Just $ SetCardCommand nm card
                         else return Nothing
-
-mainLoop :: InputT (Cluedo IO) ()
-mainLoop = do
-    l <- getInputLine $ cmdPrompt ""
-    playerNames <- lift $ map name <$> players <$> get
-    case l of
-        Nothing -> liftIO exitSuccess
-        Just "" -> mainLoop
-        Just v  -> do
-            let ws = words v
-            case head ws of
-                "turn" -> let nm = last ws in
-                          if nm `elem` playerNames
-                              then do
-                                lift $ printShowedCards nm
-                                (enterTurn nm) `catch` reportError
-                              else liftIO $ putStrLn "Incorrect player's name"
-                "setcard" -> do
-                    command <- lift $ parseSetCardCommand ws
-                    case command of
-                        Just (SetCardCommand pname card) ->
-                            lift $ setPlayerCard pname card
-                        Nothing -> liftIO
-                                    $ putStrLn "Error in player name or card."
-                "print" -> case ws !! 1 of
-                    "log" -> do
-                        logList <- lift $ map printLog <$> log <$> get
-                        if null logList
-                            then liftIO $ putStrLn "No log entries"
-                            else liftIO $ putStrLn $ intercalate "\n" logList
-                    "table" -> lift printTable
-                "accusate" ->
-                    lift $ addLogEntry
-                                $ Accusation (ws !! 1)
-                                        $ map (fromJust . parseCard) (drop 2 ws)
-                "rectify" -> lift rectifyTable
-                _      -> liftIO $ putStrLn "Unknown command"
-    mainLoop
