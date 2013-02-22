@@ -80,6 +80,28 @@ mainLoop = do
                 _      -> liftIO $ putStrLn "Unknown command"
     mainLoop
 
+parseSetCardCommand :: (Functor m, Monad m)
+                    => [String] -> Cluedo m (Maybe Command)
+parseSetCardCommand ws = do
+    playerNames <- map name <$> players <$> get
+    let nm = ws !! 1
+    let parsedCard = parseCard $ ws !! 2
+    if not $ nm `elem` ("envelope" : playerNames)
+        then return Nothing
+        else do
+            cards <- getPlayerCards nm
+            case (parsedCard, cards) of
+                (Nothing  , Nothing) -> return Nothing
+                (Nothing  , Just _ ) -> return Nothing
+                (Just _   , Nothing) -> return Nothing
+                (Just card, Just cs) -> do
+                    let unknowns = map fst $ filter ((Unknown ==) . snd) cs
+                    if card `elem` unknowns
+                        then return $ Just $ SetCardCommand nm card
+                        else return Nothing
+
+data Command = SetCardCommand String Card
+
 buildCompletions = map (\name -> Completion name name True)
 
 allCards = allPieces ++ allRooms ++ allWeapons
@@ -747,25 +769,3 @@ printLog (TurnEntry asker cardsAsked replies) =
 printLog (Accusation suggester cards) =
     "accusation:\t" ++ suggester ++ " \n"
         ++ "    " ++ (intercalate " " $ map show cards)
-
-data Command = SetCardCommand String Card
-
-parseSetCardCommand :: (Functor m, Monad m)
-                    => [String] -> Cluedo m (Maybe Command)
-parseSetCardCommand ws = do
-    playerNames <- map name <$> players <$> get
-    let nm = ws !! 1
-    let parsedCard = parseCard $ ws !! 2
-    if not $ nm `elem` ("envelope" : playerNames)
-        then return Nothing
-        else do
-            cards <- getPlayerCards nm
-            case (parsedCard, cards) of
-                (Nothing  , Nothing) -> return Nothing
-                (Nothing  , Just _ ) -> return Nothing
-                (Just _   , Nothing) -> return Nothing
-                (Just card, Just cs) -> do
-                    let unknowns = map fst $ filter ((Unknown ==) . snd) cs
-                    if card `elem` unknowns
-                        then return $ Just $ SetCardCommand nm card
-                        else return Nothing
