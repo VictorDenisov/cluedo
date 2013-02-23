@@ -4,11 +4,12 @@ import Control.Arrow (first)
 import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
 import Control.Monad.Trans (liftIO, lift)
 import Control.Monad.State (MonadState(..))
+import Control.Monad.Error (ErrorT(..))
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad (forM_, when)
 
 import Data.List (intercalate, find, isPrefixOf, sortBy, groupBy, intersect)
-import Data.Maybe (isJust, fromJust, catMaybes)
+import Data.Maybe (isJust, isNothing, fromJust, catMaybes)
 
 import System.Console.Haskeline ( InputT
                                 , Completion(..)
@@ -59,12 +60,13 @@ mainLoop = do
                                 (enterTurn nm) `catch` reportError
                               else liftIO $ putStrLn "Incorrect player's name"
                 "setcard" -> do
-                    command <- lift $ parseSetCardCommand ws
+                    command <- lift $ parseCommand v
                     case command of
-                        Just (SetCardCommand pname card) ->
+                        Right (SetCardCommand pname card) ->
                             lift $ setPlayerCard pname card
-                        Nothing -> liftIO
-                                    $ putStrLn "Error in player name or card."
+                        Left errMsg -> liftIO
+                                $ putStrLn $ "Error in player name or card: "
+                                             ++ errMsg
                 "print" -> case ws !! 1 of
                     "log" -> do
                         logList <- lift $ map printLog <$> log <$> get
@@ -80,27 +82,58 @@ mainLoop = do
                 _      -> liftIO $ putStrLn "Unknown command"
     mainLoop
 
-parseSetCardCommand :: (Functor m, Monad m)
-                    => [String] -> Cluedo m (Maybe Command)
-parseSetCardCommand ws = do
-    playerNames <- map name <$> players <$> get
-    let nm = ws !! 1
-    let parsedCard = parseCard $ ws !! 2
-    if not $ nm `elem` ("envelope" : playerNames)
-        then return Nothing
-        else do
-            cards <- getPlayerCards nm
-            case (parsedCard, cards) of
-                (Nothing  , Nothing) -> return Nothing
-                (Nothing  , Just _ ) -> return Nothing
-                (Just _   , Nothing) -> return Nothing
-                (Just card, Just cs) -> do
-                    let unknowns = map fst $ filter ((Unknown ==) . snd) cs
-                    if card `elem` unknowns
-                        then return $ Just $ SetCardCommand nm card
-                        else return Nothing
 
+type CommandParser m a = ErrorT String (StateT [String] m) a
 data Command = SetCardCommand String Card
+
+parseCommand :: (Functor m, Monad m)
+             => String -> Cluedo m (Either String Command)
+parseCommand s = evalStateT (runErrorT parseSetCardCommand) (words s)
+
+parseSetCardCommand :: (Functor m, Monad m)
+                    => CommandParser (Cluedo m) Command
+parseSetCardCommand = do
+    parseSetCard
+    pn <- parsePlayerName
+    card <- parseUnknownCard pn
+    return $ SetCardCommand pn card
+
+nextToken :: Monad m => CommandParser m String
+nextToken = do
+    l <- get
+    let token = head l
+    put $ tail l
+    return token
+
+parseSetCard :: Monad m => CommandParser m ()
+parseSetCard = do
+    v <- nextToken
+    when (v /= "setcard") $ fail "not setcard"
+
+parsePlayerName :: (Functor m, Monad m)
+                => CommandParser (Cluedo m) String
+parsePlayerName = do
+    v <- nextToken
+    playerNames <- map name <$> players <$> (lift $ lift get)
+    when (not $ v `elem` ("envelope" : playerNames)) $ fail "Unknown player name"
+    return v
+
+parseAnyCard :: Monad m => CommandParser (Cluedo m) Card
+parseAnyCard = do
+    v <- nextToken
+    let parsedCard = parseCard v
+    when (isNothing parsedCard) $ fail "Invalid card"
+    return $ fromJust parsedCard
+
+parseUnknownCard :: Monad m => String -> CommandParser (Cluedo m) Card
+parseUnknownCard pn = do
+    card <- parseAnyCard
+    cards <- lift $ lift $ getPlayerCards pn
+    when (isNothing cards) $ fail "Player has no cards"
+    let cs = fromJust cards
+    let unknowns = map fst $ filter ((Unknown ==) . snd) cs
+    when (not $ card `elem` unknowns) $ fail "Can't set known card"
+    return card
 
 buildCompletions = map (\name -> Completion name name True)
 
