@@ -4,7 +4,7 @@ import Control.Arrow (first)
 import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
 import Control.Monad.Trans (liftIO, lift)
 import Control.Monad.State (MonadState(..))
-import Control.Monad.Error (ErrorT(..))
+import Control.Monad.Error (ErrorT(..), MonadError(..))
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad (forM_, when)
 
@@ -85,6 +85,16 @@ mainLoop = do
 
 type CommandParser m a = ErrorT String (StateT [String] m) a
 data Command = SetCardCommand String Card
+
+(<|>) :: (Functor m, Monad m)
+      => CommandParser m Command
+      -> CommandParser m Command
+      -> CommandParser m Command
+a <|> b = do
+    d <- get
+    a `catchError` (\e -> do
+        put d
+        b)
 
 parseCommand :: (Functor m, Monad m)
              => String -> Cluedo m (Either String Command)
