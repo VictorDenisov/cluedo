@@ -53,14 +53,18 @@ mainLoop = do
         Just v  -> do
             let ws = words v
             case head ws of
-                "turn" -> let nm = last ws in
-                          if nm `elem` playerNames
-                              then do
-                                lift $ printShowedCards nm
-                                (enterTurn nm) `catch` reportError
-                              else liftIO $ putStrLn "Incorrect player's name"
+                "turn" -> do
+                    command <- lift $ parseCommand parseTurnCommand v
+                    case command of
+                        Right (TurnCommand nm) -> do
+                            lift $ printShowedCards nm
+                            (enterTurn nm) `catch` reportError
+                        Left errMsg ->
+                            liftIO $ putStrLn
+                                    $ "Incorrect format of turn command: "
+                                      ++ errMsg
                 "setcard" -> do
-                    command <- lift $ parseCommand v
+                    command <- lift $ parseCommand parseSetCardCommand v
                     case command of
                         Right (SetCardCommand pname card) ->
                             lift $ setPlayerCard pname card
@@ -85,20 +89,20 @@ mainLoop = do
 
 type CommandParser m a = ErrorT String (StateT [String] m) a
 data Command = SetCardCommand String Card
-
-(<|>) :: (Functor m, Monad m)
-      => CommandParser m Command
-      -> CommandParser m Command
-      -> CommandParser m Command
-a <|> b = do
-    d <- get
-    a `catchError` (\e -> do
-        put d
-        b)
+             | TurnCommand String
 
 parseCommand :: (Functor m, Monad m)
-             => String -> Cluedo m (Either String Command)
-parseCommand s = evalStateT (runErrorT parseSetCardCommand) (words s)
+             => CommandParser (Cluedo m) Command
+             -> String
+             -> Cluedo m (Either String Command)
+parseCommand cmd s = evalStateT (runErrorT cmd) (words s)
+
+parseTurnCommand :: (Functor m, Monad m)
+                 => CommandParser (Cluedo m) Command
+parseTurnCommand = do
+    parseTurn
+    pn <- parsePlayerName
+    return $ TurnCommand pn
 
 parseSetCardCommand :: (Functor m, Monad m)
                     => CommandParser (Cluedo m) Command
@@ -119,6 +123,11 @@ parseSetCard :: Monad m => CommandParser m ()
 parseSetCard = do
     v <- nextToken
     when (v /= "setcard") $ fail "not setcard"
+
+parseTurn :: Monad m => CommandParser m ()
+parseTurn = do
+    v <- nextToken
+    when (v /= "turn") $ fail "not turn"
 
 parsePlayerName :: (Functor m, Monad m)
                 => CommandParser (Cluedo m) String
