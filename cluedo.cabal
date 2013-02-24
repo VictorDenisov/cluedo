@@ -13,6 +13,7 @@ Category:       Data
 Cabal-version:  >=1.4
 
 Executable cluedo
+        hs-source-dirs:         src
         main-is:        Main.hs
         other-modules:  Cluedo
         build-depends:  base >= 3 && <= 4.5.0.0
