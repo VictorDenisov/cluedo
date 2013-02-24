@@ -14,6 +14,7 @@ Cabal-version:  >=1.4
 
 Executable cluedo
         main-is:        Main.hs
+        other-modules:  Cluedo
         build-depends:  base >= 3 && <= 4.5.0.0
                      ,  mtl >= 2.1.2
                      ,  haskeline >= 0.7.0.2

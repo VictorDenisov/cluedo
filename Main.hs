@@ -24,6 +24,7 @@ import System.Console.Haskeline.MonadException( catch
                                               , IOException
                                               , throwIO)
 import System.Exit (exitSuccess)
+import Cluedo
 
 main = evalStateT (runInputT (Settings (commandLineComplete) Nothing True)
                              (initialSetup >> mainLoop))
@@ -159,12 +160,6 @@ parseUnknownCard pn = do
 
 buildCompletions = map (\name -> Completion name name True)
 
-allCards = allPieces ++ allRooms ++ allWeapons
-
-allCardsStrings = map show allCards
-
-cardCount = length allCards
-
 commandList = ["rectify", "setcard", "turn", "print", "accusate"]
 
 printCommandList = ["log", "table"]
@@ -286,151 +281,6 @@ commandLineComplete arg = do
 cmdPrompt :: String -> String
 cmdPrompt "" = "(cluedo) "
 cmdPrompt s = "(cluedo) " ++ s ++ " # "
-
-allPieces = [Green, Mustard, Peacock, Plum, Scarlett, White]
-
-allWeapons = [Wrench, Candle, Knife, Revolver, Pipe, Rope]
-
-allRooms = [ Bathroom, Study, Dining, Billiard, Garage
-           , Bedroom, Guestroom, Kitchen, Yard]
-
-data Card = Scarlett
-          | Mustard
-          | White
-          | Green
-          | Peacock
-          | Plum
-
-          | Candle
-          | Knife
-          | Pipe
-          | Revolver
-          | Rope
-          | Wrench
-
-          | Kitchen
-          | Billiard
-          | Library
-          | Dining
-          | Bathroom
-          | Study
-          | Garage
-          | Bedroom
-          | Yard
-          | Guestroom
-
-            deriving (Eq, Show)
-
-data CardReply = CardReply Card
-               | UnknownCard
-               | EmptyCard
-
-isCardReply :: CardReply -> Bool
-isCardReply (CardReply _) = True
-isCardReply _ = False
-
-fromCardReply :: CardReply -> Maybe Card
-fromCardReply (CardReply c) = Just c
-fromCardReply _ = Nothing
-
-instance Show CardReply where
-    show (CardReply c) = show c
-    show UnknownCard = "UnknownCard"
-    show EmptyCard = "EmptyCard"
-
-isPieceCard :: Card -> Bool
-isPieceCard c = c `elem` allPieces
-
-isWeaponCard :: Card -> Bool
-isWeaponCard c = c `elem` allWeapons
-
-isRoomCard :: Card -> Bool
-isRoomCard c = c `elem` allRooms
-
-parseCard :: String -> Maybe Card
-parseCard s = s `lookup` ((map show allCards) `zip` allCards)
-
-parseCardReply :: String -> Maybe CardReply
-parseCardReply "EmptyCard" = Just EmptyCard
-parseCardReply "UnknownCard" = Just UnknownCard
-parseCardReply s = do
-    c <- parseCard s
-    return $ CardReply c
-
-data Reply = Reply
-                { replier :: String
-                , repliedCard :: CardReply
-                }
-             deriving Show
-
-data Status = Yes
-            | No
-            | Unknown
-              deriving (Eq)
-
-instance Show Status where
-    show Yes      = "+"
-    show No       = "-"
-    show Unknown  = "?"
-
-data Player = Player
-                { name    :: String
-                , cards   :: [(Card, Status)]
-                }
-
-pieces :: Player -> [(Card, Status)]
-pieces p = filter (\(c,_) -> c `elem` allPieces) (cards p)
-
-weapons :: Player -> [(Card, Status)]
-weapons p = filter (\(c,_) -> c `elem` allWeapons) (cards p)
-
-rooms :: Player -> [(Card, Status)]
-rooms p = filter (\(c,_) -> c `elem` allRooms) (cards p)
-
-fullPlayer :: String -> Player
-fullPlayer name = Player name (allCards `zip` (repeat Unknown))
-
-getCardStatus :: Card -> Player -> Status
---getCardStatus EmptyCard _ = Unknown
---getCardStatus UnknownCard _ = Unknown
-getCardStatus c p = snd $ fromJust $ find ((c ==) . fst) (cards p)
-                                -- at least one element is guaranteed.
-
-getPlayerCards :: Monad m => String -> Cluedo m (Maybe [(Card, Status)])
-getPlayerCards n = do
-    st <- get
-    if n == "envelope"
-        then
-            return $ Just $ cards $ envelope st
-        else return $ do
-            player <- find ((n ==) . name) (players st)
-            return $ cards player
-
-data LogEntry = TurnEntry
-                    { asker      :: String
-                    , cardsAsked :: [Card]
-                    , replies    :: [Reply]
-                    }
-              | Accusation String [Card]
-                deriving (Show)
-
-isTurnEntry :: LogEntry -> Bool
-isTurnEntry (TurnEntry {}) = True
-isTurnEntry _ = False
-
-isAccusation :: LogEntry -> Bool
-isAccusation (Accusation {}) = True
-isAccusation _ = False
-
-data Table m = Table
-    { players     :: [Player]
-    , out         :: Player
-    , envelope    :: Player
-    , cmdComplete :: CompletionFunc (Cluedo m)
-    , log         :: [LogEntry]
-    }
-
-type Cluedo m = StateT (Table m) m
 
 allNames :: Monad m => Cluedo m [String]
 allNames = do
@@ -813,14 +663,3 @@ printShowedCards nm = when (nm /= "me") $ do
                          $ "Cards showed: "
                            ++ (intercalate ", " $ map show cardsShowed)
 
-printReply :: Reply -> String
-printReply (Reply name card) = name ++ "\t" ++ (show card)
-
-printLogEntry :: LogEntry -> String
-printLogEntry (TurnEntry asker cardsAsked replies) =
-    asker ++ " \n"
-        ++ "    " ++ (intercalate " " $ map show cardsAsked) ++ "\n"
-        ++ "    " ++ (intercalate "\n    " $ map printReply replies)
-printLogEntry (Accusation suggester cards) =
-    "accusation:\t" ++ suggester ++ " \n"
-        ++ "    " ++ (intercalate " " $ map show cards)
