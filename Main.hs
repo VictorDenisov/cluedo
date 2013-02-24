@@ -72,19 +72,22 @@ mainLoop = do
                                 $ putStrLn $ "Error in player name or card: "
                                              ++ errMsg
                 "print" -> case ws !! 1 of
-                    "log" -> do
-                        logList <- lift $ map printLog <$> log <$> get
-                        if null logList
-                            then liftIO $ putStrLn "No log entries"
-                            else liftIO $ putStrLn $ intercalate "\n" logList
+                    "log"   -> lift printLog
                     "table" -> lift printTable
                 "accusate" ->
                     lift $ addLogEntry
                                 $ Accusation (ws !! 1)
                                         $ map (fromJust . parseCard) (drop 2 ws)
                 "rectify" -> lift rectifyTable
-                _      -> liftIO $ putStrLn "Unknown command"
+                _         -> liftIO $ putStrLn "Unknown command"
     mainLoop
+
+printLog :: (Functor m, MonadIO m) => Cluedo m ()
+printLog = do
+    logList <- map printLogEntry <$> log <$> get
+    if null logList
+        then liftIO $ putStrLn "No log entries"
+        else liftIO $ putStrLn $ intercalate "\n" logList
 
 
 type CommandParser m a = ErrorT String (StateT [String] m) a
@@ -813,11 +816,11 @@ printShowedCards nm = when (nm /= "me") $ do
 printReply :: Reply -> String
 printReply (Reply name card) = name ++ "\t" ++ (show card)
 
-printLog :: LogEntry -> String
-printLog (TurnEntry asker cardsAsked replies) =
+printLogEntry :: LogEntry -> String
+printLogEntry (TurnEntry asker cardsAsked replies) =
     asker ++ " \n"
         ++ "    " ++ (intercalate " " $ map show cardsAsked) ++ "\n"
         ++ "    " ++ (intercalate "\n    " $ map printReply replies)
-printLog (Accusation suggester cards) =
+printLogEntry (Accusation suggester cards) =
     "accusation:\t" ++ suggester ++ " \n"
         ++ "    " ++ (intercalate " " $ map show cards)
