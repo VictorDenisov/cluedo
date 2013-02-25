@@ -1,17 +1,9 @@
 module Test.AllTests
 where
 
-import qualified Distribution.TestSuite as Cabal
 import Test.HUnit
-import Test.HunitAdaptor
 
 import qualified Cluedo.Model as Model
-
-tests :: IO [Cabal.Test]
-tests = return [ createTest "testCardCount" testCardCount
-               , createTest "testIsPieceCard" testIsPieceCard_isPiece
-               , createTest "testIsNotPieceCard" testIsPieceCard_isNotPiece
-               ]
 
 testCardCount :: Assertion
 testCardCount = 21 @=? Model.cardCount
@@ -21,3 +13,21 @@ testIsPieceCard_isPiece = (Model.isPieceCard Model.White) @? "white is a piece"
 
 testIsPieceCard_isNotPiece :: Assertion
 testIsPieceCard_isNotPiece = (not $ Model.isPieceCard Model.Bathroom) @? "bathroom is not a piece"
+
+testIsWeaponCard_isWeapon :: Assertion
+testIsWeaponCard_isWeapon = Model.isWeaponCard Model.Knife @? "knife is a weapon"
+
+testIsWeaponCard_isNotWeapon :: Assertion
+testIsWeaponCard_isNotWeapon = (not $ Model.isWeaponCard Model.Peacock) @? "peacock is not a weapon"
+
+testIsRoomCard_isRoom :: Assertion
+testIsRoomCard_isRoom = Model.isRoomCard Model.Garage @? "garage is a room"
+
+testIsRoomCard_isNotRoom :: Assertion
+testIsRoomCard_isNotRoom = (not $ Model.isRoomCard Model.Pipe) @? "pie is not a room"
+
+testParseCard_isCard :: Assertion
+testParseCard_isCard = Model.parseCard "Plum" @=? Just Model.Plum
+
+testParseCard_notCard :: Assertion
+testParseCard_notCard = Model.parseCard "NotCard" @=? Nothing

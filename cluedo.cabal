@@ -23,10 +23,20 @@ Executable cluedo
                      ,  transformers >= 0.3.0.0
                      ,  parsec >= 3.1.3
 
+Executable framework-tests
+        hs-source-dirs: src
+        main-is:        Test/ByFramework.hs
+        other-modules:  Cluedo.Model
+        build-depends:  base >= 3 && <= 4.5.0.0
+                     ,  HUnit
+                     ,  test-framework
+                     ,  test-framework-hunit
+
 Test-Suite test
         hs-source-dirs:         src
         type: detailed-0.9
-        test-module: Test.AllTests
+        test-module: Test.ByCabal
         other-modules: Test.HunitAdaptor
                      , Cluedo.Model
+                     , Test.AllTests
         build-depends: base, Cabal >= 1.17, HUnit
