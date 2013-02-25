@@ -21,11 +21,6 @@ data Table m = Table
     , log         :: [LogEntry]
     }
 
-data Player = Player
-                { name    :: String
-                , cards   :: [(Card, Status)]
-                }
-
 pieces :: Player -> [(Card, Status)]
 pieces p = filter (\(c,_) -> c `elem` allPieces) (cards p)
 
@@ -59,16 +54,6 @@ isTurnEntry _ = False
 isAccusation :: LogEntry -> Bool
 isAccusation (Accusation {}) = True
 isAccusation _ = False
-
-data Status = Yes
-            | No
-            | Unknown
-              deriving (Eq)
-
-instance Show Status where
-    show Yes      = "+"
-    show No       = "-"
-    show Unknown  = "?"
 
 data LogEntry = TurnEntry
                     { asker      :: String

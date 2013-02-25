@@ -52,3 +52,18 @@ isRoomCard c = c `elem` allRooms
 
 parseCard :: String -> Maybe Card
 parseCard s = s `lookup` ((map show allCards) `zip` allCards)
+
+data Status = Yes
+            | No
+            | Unknown
+              deriving (Eq)
+
+instance Show Status where
+    show Yes      = "+"
+    show No       = "-"
+    show Unknown  = "?"
+
+data Player = Player
+                { name    :: String
+                , cards   :: [(Card, Status)]
+                }
