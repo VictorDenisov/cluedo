@@ -9,6 +9,8 @@ import Data.Maybe (fromJust)
 
 import System.Console.Haskeline.Completion(CompletionFunc)
 
+import Cluedo.Model
+
 type Cluedo m = StateT (Table m) m
 
 data Table m = Table
@@ -67,58 +69,6 @@ instance Show Status where
     show Yes      = "+"
     show No       = "-"
     show Unknown  = "?"
-
-data Card = Scarlett
-          | Mustard
-          | White
-          | Green
-          | Peacock
-          | Plum
-
-          | Candle
-          | Knife
-          | Pipe
-          | Revolver
-          | Rope
-          | Wrench
-
-          | Kitchen
-          | Billiard
-          | Library
-          | Dining
-          | Bathroom
-          | Study
-          | Garage
-          | Bedroom
-          | Yard
-          | Guestroom
-
-            deriving (Eq, Show)
-
-allPieces = [Green, Mustard, Peacock, Plum, Scarlett, White]
-
-allWeapons = [Wrench, Candle, Knife, Revolver, Pipe, Rope]
-
-allRooms = [ Bathroom, Study, Dining, Billiard, Garage
-           , Bedroom, Guestroom, Kitchen, Yard]
-
-allCards = allPieces ++ allRooms ++ allWeapons
-
-allCardsStrings = map show allCards
-
-cardCount = length allCards
-
-isPieceCard :: Card -> Bool
-isPieceCard c = c `elem` allPieces
-
-isWeaponCard :: Card -> Bool
-isWeaponCard c = c `elem` allWeapons
-
-isRoomCard :: Card -> Bool
-isRoomCard c = c `elem` allRooms
-
-parseCard :: String -> Maybe Card
-parseCard s = s `lookup` ((map show allCards) `zip` allCards)
 
 data LogEntry = TurnEntry
                     { asker      :: String

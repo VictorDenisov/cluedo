@@ -25,6 +25,7 @@ import System.Console.Haskeline.MonadException( catch
                                               , throwIO)
 import System.Exit (exitSuccess)
 import Cluedo
+import Cluedo.Model
 
 main = evalStateT (runInputT (Settings (commandLineComplete) Nothing True)
                              (initialSetup >> mainLoop))
