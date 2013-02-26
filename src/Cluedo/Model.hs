@@ -67,3 +67,15 @@ data Player = Player
                 { name    :: String
                 , cards   :: [(Card, Status)]
                 }
+
+fullPlayer :: String -> Player
+fullPlayer name = Player name (allCards `zip` (repeat Unknown))
+
+pieces :: Player -> [(Card, Status)]
+pieces p = filter ((`elem` allPieces) . fst) (cards p)
+
+weapons :: Player -> [(Card, Status)]
+weapons p = filter ((`elem` allWeapons) . fst) (cards p)
+
+rooms :: Player -> [(Card, Status)]
+rooms p = filter ((`elem` allRooms) . fst) (cards p)

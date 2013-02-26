@@ -26,4 +26,9 @@ tests = [ testGroup "cardCount"
             [ testCase "isCard" testParseCard_isCard
             , testCase "isNotCard" testParseCard_notCard
             ]
+        , testGroup "full player"
+            [ testCase "testPieces_fullPlayer" testPieces_fullPlayer
+            , testCase "testWeapons_fullPlayer" testWeapons_fullPlayer
+            , testCase "testRooms_fullPlayer" testRooms_fullPlayer
+            ]
         ]

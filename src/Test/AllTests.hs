@@ -31,3 +31,17 @@ testParseCard_isCard = Model.parseCard "Plum" @=? Just Model.Plum
 
 testParseCard_notCard :: Assertion
 testParseCard_notCard = Model.parseCard "NotCard" @=? Nothing
+
+withUnknown l = zip l (repeat Model.Unknown)
+
+testPieces_fullPlayer :: Assertion
+testPieces_fullPlayer =
+    Model.pieces (Model.fullPlayer "test") @=? withUnknown Model.allPieces
+
+testWeapons_fullPlayer :: Assertion
+testWeapons_fullPlayer =
+    Model.weapons (Model.fullPlayer "test") @=? withUnknown Model.allWeapons
+
+testRooms_fullPlayer :: Assertion
+testRooms_fullPlayer =
+    Model.rooms (Model.fullPlayer "test") @=? withUnknown Model.allRooms

@@ -21,18 +21,6 @@ data Table m = Table
     , log         :: [LogEntry]
     }
 
-pieces :: Player -> [(Card, Status)]
-pieces p = filter (\(c,_) -> c `elem` allPieces) (cards p)
-
-weapons :: Player -> [(Card, Status)]
-weapons p = filter (\(c,_) -> c `elem` allWeapons) (cards p)
-
-rooms :: Player -> [(Card, Status)]
-rooms p = filter (\(c,_) -> c `elem` allRooms) (cards p)
-
-fullPlayer :: String -> Player
-fullPlayer name = Player name (allCards `zip` (repeat Unknown))
-
 getCardStatus :: Card -> Player -> Status
 getCardStatus c p = snd $ fromJust $ find ((c ==) . fst) (cards p)
                                 -- at least one element is guaranteed.

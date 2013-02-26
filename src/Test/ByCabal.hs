@@ -16,5 +16,8 @@ tests = return [ createTest "testCardCount" testCardCount
                , createTest "testIsNotRoomCard" testIsRoomCard_isNotRoom
                , createTest "testParseCard" testParseCard_isCard
                , createTest "testParseCard_notCard" testParseCard_notCard
+               , createTest "testPieces_fullPlayer" testPieces_fullPlayer
+               , createTest "testWeapons_fullPlayer" testWeapons_fullPlayer
+               , createTest "testRooms_fullPlayer" testRooms_fullPlayer
                ]
 
