@@ -21,10 +21,6 @@ data Table m = Table
     , log         :: [LogEntry]
     }
 
-getCardStatus :: Card -> Player -> Status
-getCardStatus c p = snd $ fromJust $ find ((c ==) . fst) (cards p)
-                                -- at least one element is guaranteed.
-
 getPlayerCards :: Monad m => String -> Cluedo m (Maybe [(Card, Status)])
 getPlayerCards n = do
     st <- get

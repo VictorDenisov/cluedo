@@ -31,4 +31,8 @@ tests = [ testGroup "cardCount"
             , testCase "testWeapons_fullPlayer" testWeapons_fullPlayer
             , testCase "testRooms_fullPlayer" testRooms_fullPlayer
             ]
+        , testGroup "getCardStatus"
+            [ testCase "testGetCardStatus" testGetCardStatus
+            , testCase "testGetPeacockStatus" testGetPeacockStatus
+            ]
         ]

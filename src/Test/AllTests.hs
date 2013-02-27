@@ -45,3 +45,25 @@ testWeapons_fullPlayer =
 testRooms_fullPlayer :: Assertion
 testRooms_fullPlayer =
     Model.rooms (Model.fullPlayer "test") @=? withUnknown Model.allRooms
+
+testGetCardStatus :: Assertion
+testGetCardStatus =
+    Model.Unknown @=? Model.getCardStatus
+                                Model.Bathroom
+                                (Model.fullPlayer "test")
+
+playerWithPeacockYes :: Model.Player
+playerWithPeacockYes = Model.Player "test" $ withUnknown Model.allWeapons
+                                          ++ withUnknown Model.allRooms
+                                          ++ [ (Model.Scarlett, Model.Unknown)
+                                             , (Model.Mustard , Model.Unknown)
+                                             , (Model.White   , Model.Unknown)
+                                             , (Model.Green   , Model.Unknown)
+                                             , (Model.Peacock , Model.Yes    )
+                                             , (Model.Plum    , Model.Unknown)
+                                             ]
+
+testGetPeacockStatus :: Assertion
+testGetPeacockStatus =
+    Model.Yes @=? Model.getCardStatus
+                                Model.Peacock playerWithPeacockYes

@@ -19,5 +19,7 @@ tests = return [ createTest "testCardCount" testCardCount
                , createTest "testPieces_fullPlayer" testPieces_fullPlayer
                , createTest "testWeapons_fullPlayer" testWeapons_fullPlayer
                , createTest "testRooms_fullPlayer" testRooms_fullPlayer
+               , createTest "testGetCardStatus" testGetCardStatus
+               , createTest "testGetPeacockStatus" testGetPeacockStatus
                ]
 

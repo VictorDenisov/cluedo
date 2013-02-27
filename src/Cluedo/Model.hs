@@ -1,5 +1,8 @@
 module Cluedo.Model
 where
+import Data.List (find)
+
+import Data.Maybe (fromJust)
 
 data Card = Scarlett
           | Mustard
@@ -79,3 +82,8 @@ weapons p = filter ((`elem` allWeapons) . fst) (cards p)
 
 rooms :: Player -> [(Card, Status)]
 rooms p = filter ((`elem` allRooms) . fst) (cards p)
+
+{- | This function is unsafe and assumes player has this card. It's safe for
+fullPlayer. -}
+getCardStatus :: Card -> Player -> Status
+getCardStatus c p = snd $ fromJust $ find ((c ==) . fst) (cards p)
