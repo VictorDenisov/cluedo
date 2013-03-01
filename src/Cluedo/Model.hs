@@ -87,3 +87,7 @@ rooms p = filter ((`elem` allRooms) . fst) (cards p)
 fullPlayer. -}
 getCardStatus :: Card -> Player -> Status
 getCardStatus c p = snd $ fromJust $ find ((c ==) . fst) (cards p)
+
+setCardTuple :: Card -> (Card, Status) -> (Card, Status)
+setCardTuple o (c, s) | o == c = (c, Yes)
+setCardTuple o (c, s) = (c, s)

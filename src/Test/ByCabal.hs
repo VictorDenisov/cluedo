@@ -21,5 +21,8 @@ tests = return [ createTest "testCardCount" testCardCount
                , createTest "testRooms_fullPlayer" testRooms_fullPlayer
                , createTest "testGetCardStatus" testGetCardStatus
                , createTest "testGetPeacockStatus" testGetPeacockStatus
+               , createTest "testSetCardTuple" testSetCardTuple
+               , createTest "testSetCardTuple_notSetForDifferentCard"
+                             testSetCardTuple_notSetForDifferentCard
                ]
 

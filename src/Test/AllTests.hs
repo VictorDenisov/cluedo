@@ -67,3 +67,11 @@ testGetPeacockStatus :: Assertion
 testGetPeacockStatus =
     Model.Yes @=? Model.getCardStatus
                                 Model.Peacock playerWithPeacockYes
+
+testSetCardTuple :: Assertion
+testSetCardTuple =
+    (Model.Plum, Model.Yes) @=? Model.setCardTuple Model.Plum (Model.Plum, Model.Unknown)
+
+testSetCardTuple_notSetForDifferentCard :: Assertion
+testSetCardTuple_notSetForDifferentCard =
+    (Model.Plum, Model.Unknown) @=? Model.setCardTuple Model.Peacock (Model.Plum, Model.Unknown)
