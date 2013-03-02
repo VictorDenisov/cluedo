@@ -75,3 +75,11 @@ testSetCardTuple =
 testSetCardTuple_notSetForDifferentCard :: Assertion
 testSetCardTuple_notSetForDifferentCard =
     (Model.Plum, Model.Unknown) @=? Model.setCardTuple Model.Peacock (Model.Plum, Model.Unknown)
+
+testClearCardTuple :: Assertion
+testClearCardTuple =
+    (Model.Plum, Model.No) @=? Model.clearCardTuple Model.Plum (Model.Plum, Model.Unknown)
+
+testClearCardTuple_notClearForDifferentCard :: Assertion
+testClearCardTuple_notClearForDifferentCard =
+    (Model.Plum, Model.Unknown) @=? Model.clearCardTuple Model.Peacock (Model.Plum, Model.Unknown)

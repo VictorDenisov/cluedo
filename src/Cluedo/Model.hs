@@ -91,3 +91,7 @@ getCardStatus c p = snd $ fromJust $ find ((c ==) . fst) (cards p)
 setCardTuple :: Card -> (Card, Status) -> (Card, Status)
 setCardTuple o (c, s) | o == c = (c, Yes)
 setCardTuple o (c, s) = (c, s)
+
+clearCardTuple :: Card -> (Card, Status) -> (Card, Status)
+clearCardTuple o (c, s) | o == c = (c, No)
+clearCardTuple o (c, s) = (c, s)

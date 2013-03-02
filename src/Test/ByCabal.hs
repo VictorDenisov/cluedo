@@ -24,5 +24,8 @@ tests = return [ createTest "testCardCount" testCardCount
                , createTest "testSetCardTuple" testSetCardTuple
                , createTest "testSetCardTuple_notSetForDifferentCard"
                              testSetCardTuple_notSetForDifferentCard
+               , createTest "testClearCardTuple" testClearCardTuple
+               , createTest "testClearCardTuple_notClearForDifferentCard"
+                             testClearCardTuple_notClearForDifferentCard
                ]
 
