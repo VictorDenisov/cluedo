@@ -311,12 +311,8 @@ setPlayerCard n c = do
     setEnvelope $ setCard n c (envelope st)
 
 setCard :: String -> Card -> Player -> Player
-setCard n c pl | n == name pl = pl {cards = map (setCardElem c) (cards pl)}
-setCard n c pl = pl {cards = map (clearCardElem c) (cards pl)}
-
-setCardElem :: Card -> (Card, Status) -> (Card, Status)
-setCardElem p (pv, st) | p == pv = (pv, Yes)
-setCardElem p (pv, st) = (pv, st)
+setCard n c pl | n == name pl = pl {cards = map (setCardTuple c) (cards pl)}
+setCard n c pl = pl {cards = map (clearCardTuple c) (cards pl)}
 
 clearPlayerCard :: Monad m => String -> Card -> Cluedo m ()
 clearPlayerCard n c = do
@@ -326,12 +322,8 @@ clearPlayerCard n c = do
     setEnvelope $ clearCard n c (envelope st)
 
 clearCard :: String -> Card -> Player -> Player
-clearCard n c pl | n == name pl = pl {cards = map (clearCardElem c) (cards pl)}
+clearCard n c pl | n == name pl = pl {cards = map (clearCardTuple c) (cards pl)}
 clearCard n c pl = pl
-
-clearCardElem :: Card -> (Card, Status) -> (Card, Status)
-clearCardElem p (pv, st) | p == pv = (pv, No)
-clearCardElem p (pv, st) = (pv, st)
 
 retrieveAskedCards :: Monad m => Cluedo m ([(String, [Card])])
 retrieveAskedCards = do
