@@ -123,3 +123,20 @@ parseCardReply :: String -> Maybe CardReply
 parseCardReply "EmptyCard" = Just EmptyCard
 parseCardReply "UnknownCard" = Just UnknownCard
 parseCardReply s = CardReply <$> parseCard s
+
+data Reply = Reply
+                { replier :: String
+                , repliedCard :: CardReply
+                }
+             deriving (Show, Eq)
+
+parseReply :: [String] -> [String] -> Maybe Reply
+parseReply playerNames tokens | length tokens /= 2 = Nothing
+parseReply playerNames tokens = let playerToken = tokens !! 0
+                                    cardToken = tokens !! 1 in
+    if playerToken `elem` playerNames
+        then Reply playerToken <$> parseCardReply cardToken
+        else Nothing
+
+printReply :: Reply -> String
+printReply (Reply name card) = name ++ "\t" ++ (show card)

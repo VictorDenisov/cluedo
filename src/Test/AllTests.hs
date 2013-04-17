@@ -112,3 +112,29 @@ testParseCardReply_Peacock =
 testParseCardReply_InvalidCard :: Assertion
 testParseCardReply_InvalidCard =
     Nothing @=? Model.parseCardReply "InvalidCard"
+
+testParseReply_Valid :: Assertion
+testParseReply_Valid =
+    (Just $ Model.Reply "player1" (Model.CardReply Model.White))
+    @=?
+    (Model.parseReply ["player2", "player1"] ["player1", "White"])
+
+testParseReply_UnknownPlayer :: Assertion
+testParseReply_UnknownPlayer =
+    Nothing
+    @=?
+    (Model.parseReply ["player2", "player1"] ["playerUnknown", "White"])
+
+testParseReply_CardInvalid :: Assertion
+testParseReply_CardInvalid =
+    Nothing
+    @=?
+    (Model.parseReply ["player2", "player1"] ["player1", "CardInvalid"])
+
+testParseReply_WrongTokenCount :: Assertion
+testParseReply_WrongTokenCount =
+    Nothing
+    @=?
+    (Model.parseReply ["player2", "player1"] [ "player1"
+                                             , "White"
+                                             , "additionalToken"])

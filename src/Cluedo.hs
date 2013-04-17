@@ -55,12 +55,3 @@ printLogEntry (TurnEntry asker cardsAsked replies) =
 printLogEntry (Accusation suggester cards) =
     "accusation:\t" ++ suggester ++ " \n"
         ++ "    " ++ (intercalate " " $ map show cards)
-
-data Reply = Reply
-                { replier :: String
-                , repliedCard :: CardReply
-                }
-             deriving Show
-
-printReply :: Reply -> String
-printReply (Reply name card) = name ++ "\t" ++ (show card)
