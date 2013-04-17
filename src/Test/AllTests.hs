@@ -83,3 +83,16 @@ testClearCardTuple =
 testClearCardTuple_notClearForDifferentCard :: Assertion
 testClearCardTuple_notClearForDifferentCard =
     (Model.Plum, Model.Unknown) @=? Model.clearCardTuple Model.Peacock (Model.Plum, Model.Unknown)
+
+testSetCard_givenCardAndPlayerIsSet :: Assertion
+testSetCard_givenCardAndPlayerIsSet =
+    let result = Model.setCard playerName Model.Peacock (Model.fullPlayer playerName)
+    in
+        Model.Yes @=? Model.getCardStatus Model.Peacock result
+    where playerName = "player"
+
+testSetCard_givenCardAndWrongPlayerIsSet :: Assertion
+testSetCard_givenCardAndWrongPlayerIsSet =
+    let result = Model.setCard "differentPlayer" Model.Peacock (Model.fullPlayer "player")
+    in
+        Model.No @=? Model.getCardStatus Model.Peacock result

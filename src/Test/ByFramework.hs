@@ -35,4 +35,12 @@ tests = [ testGroup "cardCount"
             [ testCase "testGetCardStatus" testGetCardStatus
             , testCase "testGetPeacockStatus" testGetPeacockStatus
             ]
+        , testGroup "getSetCard"
+            [ testCase
+                    "testSetCard_givenCardAndPlayerIsSet"
+                    testSetCard_givenCardAndPlayerIsSet
+            , testCase
+                    "testSetCard_givenCardAndWrongPlayerIsSet"
+                    testSetCard_givenCardAndWrongPlayerIsSet
+            ]
         ]
