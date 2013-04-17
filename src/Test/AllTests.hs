@@ -96,3 +96,19 @@ testSetCard_givenCardAndWrongPlayerIsSet =
     let result = Model.setCard "differentPlayer" Model.Peacock (Model.fullPlayer "player")
     in
         Model.No @=? Model.getCardStatus Model.Peacock result
+
+testParseCardReply_EmptyCard :: Assertion
+testParseCardReply_EmptyCard =
+    (Just Model.EmptyCard) @=? Model.parseCardReply "EmptyCard"
+
+testParseCardReply_UnknownCard :: Assertion
+testParseCardReply_UnknownCard =
+    (Just Model.UnknownCard) @=? Model.parseCardReply "UnknownCard"
+
+testParseCardReply_Peacock :: Assertion
+testParseCardReply_Peacock =
+    (Just $ Model.CardReply Model.Peacock) @=? Model.parseCardReply "Peacock"
+
+testParseCardReply_InvalidCard :: Assertion
+testParseCardReply_InvalidCard =
+    Nothing @=? Model.parseCardReply "InvalidCard"

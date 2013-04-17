@@ -64,27 +64,3 @@ data Reply = Reply
 
 printReply :: Reply -> String
 printReply (Reply name card) = name ++ "\t" ++ (show card)
-
-data CardReply = CardReply Card
-               | UnknownCard
-               | EmptyCard
-
-instance Show CardReply where
-    show (CardReply c) = show c
-    show UnknownCard = "UnknownCard"
-    show EmptyCard = "EmptyCard"
-
-isCardReply :: CardReply -> Bool
-isCardReply (CardReply _) = True
-isCardReply _ = False
-
-fromCardReply :: CardReply -> Maybe Card
-fromCardReply (CardReply c) = Just c
-fromCardReply _ = Nothing
-
-parseCardReply :: String -> Maybe CardReply
-parseCardReply "EmptyCard" = Just EmptyCard
-parseCardReply "UnknownCard" = Just UnknownCard
-parseCardReply s = do
-    c <- parseCard s
-    return $ CardReply c

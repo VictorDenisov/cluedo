@@ -3,6 +3,7 @@ where
 import Data.List (find)
 
 import Data.Maybe (fromJust)
+import Control.Applicative ((<$>))
 
 data Card = Scarlett
           | Mustard
@@ -99,3 +100,26 @@ clearCardTuple o (c, s) = (c, s)
 setCard :: String -> Card -> Player -> Player
 setCard n c pl | n == name pl = pl {cards = map (setCardTuple c) (cards pl)}
 setCard n c pl = pl {cards = map (clearCardTuple c) (cards pl)}
+
+data CardReply = CardReply Card
+               | UnknownCard
+               | EmptyCard
+                 deriving Eq
+
+instance Show CardReply where
+    show (CardReply c) = show c
+    show UnknownCard = "UnknownCard"
+    show EmptyCard = "EmptyCard"
+
+isCardReply :: CardReply -> Bool
+isCardReply (CardReply _) = True
+isCardReply _ = False
+
+fromCardReply :: CardReply -> Maybe Card
+fromCardReply (CardReply c) = Just c
+fromCardReply _ = Nothing
+
+parseCardReply :: String -> Maybe CardReply
+parseCardReply "EmptyCard" = Just EmptyCard
+parseCardReply "UnknownCard" = Just UnknownCard
+parseCardReply s = CardReply <$> parseCard s

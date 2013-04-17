@@ -43,4 +43,18 @@ tests = [ testGroup "cardCount"
                     "testSetCard_givenCardAndWrongPlayerIsSet"
                     testSetCard_givenCardAndWrongPlayerIsSet
             ]
+        , testGroup "parseCardReply"
+            [ testCase
+                    "testParseCardReply_EmptyCard"
+                    testParseCardReply_EmptyCard
+            , testCase
+                    "testParseCardReply_UnknownCard"
+                    testParseCardReply_UnknownCard
+            , testCase
+                    "testParseCardReply_Peacock"
+                    testParseCardReply_Peacock
+            , testCase
+                    "testParseCardReply_InvalidCard"
+                    testParseCardReply_InvalidCard
+            ]
         ]
