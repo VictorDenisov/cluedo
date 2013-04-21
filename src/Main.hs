@@ -465,11 +465,9 @@ askReply cmdPrompt cardsAsked = withCompleter (replyComplete cardsAsked) $ do
     case l of
         Nothing -> fail "askReply aborted"
         Just v -> do
-            let ws = words v
-            let cardReply = parseCardReply $ last ws
-            case (head ws `elem` playerNames, cardReply) of
-                (True, Just c) -> return $ Reply (head ws) c
-                _ -> do
+            case parseReply playerNames (words v) of
+                Just x -> return x
+                Nothing -> do
                     liftIO $ putStrLn "Incorrect input. Asking again."
                     askReply cmdPrompt cardsAsked
 
