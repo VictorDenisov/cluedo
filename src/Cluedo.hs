@@ -30,22 +30,9 @@ getPlayerCards n = do
         else return $ do
             player <- find ((n ==) . name) (players st)
             return $ cards player
-
-isTurnEntry :: LogEntry -> Bool
-isTurnEntry (TurnEntry {}) = True
-isTurnEntry _ = False
-
 isAccusation :: LogEntry -> Bool
 isAccusation (Accusation {}) = True
 isAccusation _ = False
-
-data LogEntry = TurnEntry
-                    { asker      :: String
-                    , cardsAsked :: [Card]
-                    , replies    :: [Reply]
-                    }
-              | Accusation String [Card]
-                deriving (Show)
 
 printLogEntry :: LogEntry -> String
 printLogEntry (TurnEntry asker cardsAsked replies) =

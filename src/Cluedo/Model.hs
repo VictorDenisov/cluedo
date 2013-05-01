@@ -140,3 +140,15 @@ parseReply playerNames tokens = let playerToken = tokens !! 0
 
 printReply :: Reply -> String
 printReply (Reply name card) = name ++ "\t" ++ (show card)
+
+data LogEntry = TurnEntry
+                    { asker      :: String
+                    , cardsAsked :: [Card]
+                    , replies    :: [Reply]
+                    }
+              | Accusation String [Card]
+                deriving (Show)
+
+isTurnEntry :: LogEntry -> Bool
+isTurnEntry (TurnEntry {}) = True
+isTurnEntry _ = False

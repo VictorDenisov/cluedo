@@ -138,3 +138,11 @@ testParseReply_WrongTokenCount =
     (Model.parseReply ["player2", "player1"] [ "player1"
                                              , "White"
                                              , "additionalToken"])
+
+testIsTurnEntry_TurnEntry :: Assertion
+testIsTurnEntry_TurnEntry =
+    True @=? (Model.isTurnEntry $ Model.TurnEntry "" [] [])
+
+testIsTurnEntry_NotTurnEntry :: Assertion
+testIsTurnEntry_NotTurnEntry =
+    False @=? (Model.isTurnEntry $ Model.Accusation "" [])
