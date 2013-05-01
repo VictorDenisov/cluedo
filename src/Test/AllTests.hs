@@ -146,3 +146,11 @@ testIsTurnEntry_TurnEntry =
 testIsTurnEntry_NotTurnEntry :: Assertion
 testIsTurnEntry_NotTurnEntry =
     False @=? (Model.isTurnEntry $ Model.Accusation "" [])
+
+testIsAccusation_Accusation :: Assertion
+testIsAccusation_Accusation =
+    True @=? (Model.isAccusation $ Model.Accusation "" [])
+
+testIsAccusation_NotAccusation :: Assertion
+testIsAccusation_NotAccusation =
+    False @=? (Model.isAccusation $ Model.TurnEntry "" [] [])

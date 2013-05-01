@@ -30,10 +30,6 @@ getPlayerCards n = do
         else return $ do
             player <- find ((n ==) . name) (players st)
             return $ cards player
-isAccusation :: LogEntry -> Bool
-isAccusation (Accusation {}) = True
-isAccusation _ = False
-
 printLogEntry :: LogEntry -> String
 printLogEntry (TurnEntry asker cardsAsked replies) =
     asker ++ " \n"

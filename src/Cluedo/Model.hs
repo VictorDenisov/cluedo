@@ -152,3 +152,7 @@ data LogEntry = TurnEntry
 isTurnEntry :: LogEntry -> Bool
 isTurnEntry (TurnEntry {}) = True
 isTurnEntry _ = False
+
+isAccusation :: LogEntry -> Bool
+isAccusation (Accusation {}) = True
+isAccusation _ = False
