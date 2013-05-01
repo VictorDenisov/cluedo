@@ -12,19 +12,31 @@ testIsPieceCard_isPiece :: Assertion
 testIsPieceCard_isPiece = (Model.isPieceCard Model.White) @? "white is a piece"
 
 testIsPieceCard_isNotPiece :: Assertion
-testIsPieceCard_isNotPiece = (not $ Model.isPieceCard Model.Bathroom) @? "bathroom is not a piece"
+testIsPieceCard_isNotPiece =
+    (not $ Model.isPieceCard Model.Bathroom)
+    @?
+    "bathroom is not a piece"
 
 testIsWeaponCard_isWeapon :: Assertion
-testIsWeaponCard_isWeapon = Model.isWeaponCard Model.Knife @? "knife is a weapon"
+testIsWeaponCard_isWeapon =
+    Model.isWeaponCard Model.Knife
+    @?
+    "knife is a weapon"
 
 testIsWeaponCard_isNotWeapon :: Assertion
-testIsWeaponCard_isNotWeapon = (not $ Model.isWeaponCard Model.Peacock) @? "peacock is not a weapon"
+testIsWeaponCard_isNotWeapon =
+    (not $ Model.isWeaponCard Model.Peacock)
+    @?
+    "peacock is not a weapon"
 
 testIsRoomCard_isRoom :: Assertion
 testIsRoomCard_isRoom = Model.isRoomCard Model.Garage @? "garage is a room"
 
 testIsRoomCard_isNotRoom :: Assertion
-testIsRoomCard_isNotRoom = (not $ Model.isRoomCard Model.Pipe) @? "pie is not a room"
+testIsRoomCard_isNotRoom =
+    (not $ Model.isRoomCard Model.Pipe)
+    @?
+    "pie is not a room"
 
 testParseCard_isCard :: Assertion
 testParseCard_isCard = Model.parseCard "Plum" @=? Just Model.Plum
@@ -70,43 +82,63 @@ testGetPeacockStatus =
 
 testSetCardTuple :: Assertion
 testSetCardTuple =
-    (Model.Plum, Model.Yes) @=? Model.setCardTuple Model.Plum (Model.Plum, Model.Unknown)
+    (Model.Plum, Model.Yes)
+    @=?
+    Model.setCardTuple Model.Plum (Model.Plum, Model.Unknown)
 
 testSetCardTuple_notSetForDifferentCard :: Assertion
 testSetCardTuple_notSetForDifferentCard =
-    (Model.Plum, Model.Unknown) @=? Model.setCardTuple Model.Peacock (Model.Plum, Model.Unknown)
+    (Model.Plum, Model.Unknown)
+    @=?
+    Model.setCardTuple Model.Peacock (Model.Plum, Model.Unknown)
 
 testClearCardTuple :: Assertion
 testClearCardTuple =
-    (Model.Plum, Model.No) @=? Model.clearCardTuple Model.Plum (Model.Plum, Model.Unknown)
+    (Model.Plum, Model.No)
+    @=?
+    Model.clearCardTuple Model.Plum (Model.Plum, Model.Unknown)
 
 testClearCardTuple_notClearForDifferentCard :: Assertion
 testClearCardTuple_notClearForDifferentCard =
-    (Model.Plum, Model.Unknown) @=? Model.clearCardTuple Model.Peacock (Model.Plum, Model.Unknown)
+    (Model.Plum, Model.Unknown)
+    @=?
+    Model.clearCardTuple Model.Peacock (Model.Plum, Model.Unknown)
 
 testSetCard_givenCardAndPlayerIsSet :: Assertion
 testSetCard_givenCardAndPlayerIsSet =
-    let result = Model.setCard playerName Model.Peacock (Model.fullPlayer playerName)
+    let result = Model.setCard
+                            playerName
+                            Model.Peacock
+                            (Model.fullPlayer playerName)
     in
         Model.Yes @=? Model.getCardStatus Model.Peacock result
     where playerName = "player"
 
 testSetCard_givenCardAndWrongPlayerIsSet :: Assertion
 testSetCard_givenCardAndWrongPlayerIsSet =
-    let result = Model.setCard "differentPlayer" Model.Peacock (Model.fullPlayer "player")
+    let result = Model.setCard
+                            "differentPlayer"
+                            Model.Peacock
+                            (Model.fullPlayer "player")
     in
         Model.No @=? Model.getCardStatus Model.Peacock result
 
 testClearCard_givenCardAndPlayerIsCleared :: Assertion
 testClearCard_givenCardAndPlayerIsCleared =
-    let result = Model.clearCard playerName Model.Peacock (Model.fullPlayer playerName)
+    let result = Model.clearCard
+                            playerName
+                            Model.Peacock
+                            (Model.fullPlayer playerName)
     in
         Model.No @=? Model.getCardStatus Model.Peacock result
     where playerName = "player"
 
 testClearCard_givenCardAndWrongPlayerIsCleared :: Assertion
 testClearCard_givenCardAndWrongPlayerIsCleared =
-    let result = Model.clearCard "differentPlayer" Model.Peacock (Model.fullPlayer "player")
+    let result = Model.clearCard
+                            "differentPlayer"
+                            Model.Peacock
+                            (Model.fullPlayer "player")
     in
         Model.Unknown @=? Model.getCardStatus Model.Peacock result
 
