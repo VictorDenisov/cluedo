@@ -97,6 +97,19 @@ testSetCard_givenCardAndWrongPlayerIsSet =
     in
         Model.No @=? Model.getCardStatus Model.Peacock result
 
+testClearCard_givenCardAndPlayerIsCleared :: Assertion
+testClearCard_givenCardAndPlayerIsCleared =
+    let result = Model.clearCard playerName Model.Peacock (Model.fullPlayer playerName)
+    in
+        Model.No @=? Model.getCardStatus Model.Peacock result
+    where playerName = "player"
+
+testClearCard_givenCardAndWrongPlayerIsCleared :: Assertion
+testClearCard_givenCardAndWrongPlayerIsCleared =
+    let result = Model.clearCard "differentPlayer" Model.Peacock (Model.fullPlayer "player")
+    in
+        Model.Unknown @=? Model.getCardStatus Model.Peacock result
+
 testParseCardReply_EmptyCard :: Assertion
 testParseCardReply_EmptyCard =
     (Just Model.EmptyCard) @=? Model.parseCardReply "EmptyCard"

@@ -317,10 +317,6 @@ clearPlayerCard n c = do
     setOut $ clearCard n c (out st)
     setEnvelope $ clearCard n c (envelope st)
 
-clearCard :: String -> Card -> Player -> Player
-clearCard n c pl | n == name pl = pl {cards = map (clearCardTuple c) (cards pl)}
-clearCard n c pl = pl
-
 retrieveAskedCards :: Monad m => Cluedo m ([(String, [Card])])
 retrieveAskedCards = do
     st <- get

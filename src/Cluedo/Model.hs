@@ -101,6 +101,10 @@ setCard :: String -> Card -> Player -> Player
 setCard n c pl | n == name pl = pl {cards = map (setCardTuple c) (cards pl)}
 setCard n c pl = pl {cards = map (clearCardTuple c) (cards pl)}
 
+clearCard :: String -> Card -> Player -> Player
+clearCard n c pl | n == name pl = pl {cards = map (clearCardTuple c) (cards pl)}
+clearCard n c pl = pl
+
 data CardReply = CardReply Card
                | UnknownCard
                | EmptyCard
