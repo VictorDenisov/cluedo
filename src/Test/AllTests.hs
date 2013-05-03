@@ -184,6 +184,12 @@ testParseReply_WrongTokenCount =
                                              , "White"
                                              , "additionalToken"])
 
+testPrintReply :: Assertion
+testPrintReply =
+    "name\tEmptyCard"
+    @=?
+    (Model.printReply $ Model.Reply "name" Model.EmptyCard)
+
 testIsTurnEntry_TurnEntry :: Assertion
 testIsTurnEntry_TurnEntry =
     True @=? (Model.isTurnEntry $ Model.TurnEntry "" [] [])

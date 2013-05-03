@@ -79,6 +79,11 @@ tests = [ testGroup "cardCount"
                     "testParseReply_WrongTokenCount"
                     testParseReply_WrongTokenCount
             ]
+        , testGroup "printReply"
+            [ testCase
+                    "testPrintReply"
+                    testPrintReply
+            ]
         , testGroup "isTurnEntry"
             [ testCase
                     "testIsTurnEntry_TurnEntry"
