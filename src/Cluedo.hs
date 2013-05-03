@@ -30,11 +30,3 @@ getPlayerCards n = do
         else return $ do
             player <- find ((n ==) . name) (players st)
             return $ cards player
-printLogEntry :: LogEntry -> String
-printLogEntry (TurnEntry asker cardsAsked replies) =
-    asker ++ " \n"
-        ++ "    " ++ (intercalate " " $ map show cardsAsked) ++ "\n"
-        ++ "    " ++ (intercalate "\n    " $ map printReply replies)
-printLogEntry (Accusation suggester cards) =
-    "accusation:\t" ++ suggester ++ " \n"
-        ++ "    " ++ (intercalate " " $ map show cards)

@@ -205,3 +205,25 @@ testIsAccusation_Accusation =
 testIsAccusation_NotAccusation :: Assertion
 testIsAccusation_NotAccusation =
     False @=? (Model.isAccusation $ Model.TurnEntry "" [] [])
+
+testPrintLogEntry_TurnEntry :: Assertion
+testPrintLogEntry_TurnEntry =
+    ("asker \n" ++
+    "    Peacock\n" ++
+    "    replier\tEmptyCard")
+    @=?
+    (Model.printLogEntry $
+            Model.TurnEntry
+                    "asker"
+                    [Model.Peacock]
+                    [Model.Reply "replier" Model.EmptyCard])
+
+testPrintLogEntry_Accusation :: Assertion
+testPrintLogEntry_Accusation =
+    ("accusation:\tsuggester \n" ++
+    "    Peacock")
+    @=?
+    (Model.printLogEntry $
+            Model.Accusation
+                    "suggester"
+                    [Model.Peacock])

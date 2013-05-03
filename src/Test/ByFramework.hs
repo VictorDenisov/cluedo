@@ -100,4 +100,12 @@ tests = [ testGroup "cardCount"
                     "testIsAccusation_NotAccusation"
                     testIsAccusation_NotAccusation
             ]
+        , testGroup "printLogEntry"
+            [ testCase
+                "testPrintLogEntry_TurnEntry"
+                testPrintLogEntry_TurnEntry
+            , testCase
+                "testPrintLogEntry_Accusation"
+                testPrintLogEntry_Accusation
+            ]
         ]

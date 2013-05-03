@@ -4,6 +4,7 @@ import Data.List (find)
 
 import Data.Maybe (fromJust)
 import Control.Applicative ((<$>))
+import Data.List (intercalate)
 
 data Card = Scarlett
           | Mustard
@@ -160,3 +161,12 @@ isTurnEntry _ = False
 isAccusation :: LogEntry -> Bool
 isAccusation (Accusation {}) = True
 isAccusation _ = False
+
+printLogEntry :: LogEntry -> String
+printLogEntry (TurnEntry asker cardsAsked replies) =
+    asker ++ " \n"
+        ++ "    " ++ (intercalate " " $ map show cardsAsked) ++ "\n"
+        ++ "    " ++ (intercalate "\n    " $ map printReply replies)
+printLogEntry (Accusation suggester cards) =
+    "accusation:\t" ++ suggester ++ " \n"
+        ++ "    " ++ (intercalate " " $ map show cards)
