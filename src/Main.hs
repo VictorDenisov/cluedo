@@ -627,12 +627,6 @@ enterTurn playerName = do
     lift $ addLogEntry logEntry
     lift rectifyTable
 
-cardsShowedTo :: String -> [LogEntry] -> [Card]
-cardsShowedTo player log = concat $ (flip map) playerRequests $ \e ->
-        catMaybes $ map fromCardReply $ map repliedCard $ filter (("me" ==) . replier) (replies e)
-    where
-        playerRequests = filter ((player ==) . asker) $ filter isTurnEntry log
-
 reportError :: IOException -> InputT (Cluedo IO) ()
 reportError e = liftIO $ putStrLn $ "IO error " ++ (show e)
 

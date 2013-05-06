@@ -227,3 +227,39 @@ testPrintLogEntry_Accusation =
             Model.Accusation
                     "suggester"
                     [Model.Peacock])
+
+testCardsShowedTo_NonExistentPlayer :: Assertion
+testCardsShowedTo_NonExistentPlayer =
+    []
+    @=?
+    (Model.cardsShowedTo
+            "NonExistentPlayer"
+            [ Model.TurnEntry
+                    "player1"
+                    [ Model.Peacock
+                    , Model.Wrench
+                    ]
+                    [ Model.Reply
+                        "player2"
+                        (Model.CardReply Model.Peacock)
+                    ]
+            ]
+    )
+
+testCardsShowedTo_MePlayerIsAbsent :: Assertion
+testCardsShowedTo_MePlayerIsAbsent =
+    []
+    @=?
+    (Model.cardsShowedTo
+            "player1"
+            [ Model.TurnEntry
+                    "player1"
+                    [ Model.Peacock
+                    , Model.Wrench
+                    ]
+                    [ Model.Reply
+                        "player2"
+                        (Model.CardReply Model.Peacock)
+                    ]
+            ]
+    )

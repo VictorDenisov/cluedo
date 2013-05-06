@@ -108,4 +108,12 @@ tests = [ testGroup "cardCount"
                 "testPrintLogEntry_Accusation"
                 testPrintLogEntry_Accusation
             ]
+        , testGroup "cardsShowedTo"
+            [ testCase
+                "testCardsShowedTo_NonExistentPlayer"
+                testCardsShowedTo_NonExistentPlayer
+            , testCase
+                "testCardsShowedTo_MePlayerIsAbsent"
+                testCardsShowedTo_MePlayerIsAbsent
+            ]
         ]

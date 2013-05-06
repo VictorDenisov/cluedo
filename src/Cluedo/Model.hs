@@ -5,6 +5,7 @@ import Data.List (find)
 import Data.Maybe (fromJust)
 import Control.Applicative ((<$>))
 import Data.List (intercalate)
+import Data.Maybe (catMaybes)
 
 data Card = Scarlett
           | Mustard
@@ -170,3 +171,9 @@ printLogEntry (TurnEntry asker cardsAsked replies) =
 printLogEntry (Accusation suggester cards) =
     "accusation:\t" ++ suggester ++ " \n"
         ++ "    " ++ (intercalate " " $ map show cards)
+
+cardsShowedTo :: String -> [LogEntry] -> [Card]
+cardsShowedTo player log = concat $ (flip map) playerRequests $ \e ->
+        catMaybes $ map fromCardReply $ map repliedCard $ filter (("me" ==) . replier) (replies e)
+    where
+        playerRequests = filter ((player ==) . asker) $ filter isTurnEntry log
