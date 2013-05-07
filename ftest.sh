@@ -1,3 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 
-cabal build && ./dist/build/framework-tests/framework-tests
+cabal build
+./dist/build/framework-tests/framework-tests
