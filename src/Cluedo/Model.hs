@@ -176,6 +176,7 @@ cardsShowedTo :: String -> [LogEntry] -> [Card]
 cardsShowedTo player log =
     concat $ map (catMaybes . map fromCardReply . myCardReplies) playerRequests
     where
-        playerRequests = filter ((player ==) . asker) $ filter isTurnEntry log
+        playerRequests = filter ((player ==) . asker) turnLogEntries
+        turnLogEntries = filter isTurnEntry log
         myCardReplies turnEntry = map repliedCard (myReplies turnEntry)
         myReplies turnEntry = filter (("me" ==) . replier) (replies turnEntry)
