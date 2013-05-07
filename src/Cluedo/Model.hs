@@ -174,6 +174,9 @@ printLogEntry (Accusation suggester cards) =
 
 cardsShowedTo :: String -> [LogEntry] -> [Card]
 cardsShowedTo player log = concat $ (flip map) playerRequests $ \e ->
-        catMaybes $ map fromCardReply $ map repliedCard $ filter (("me" ==) . replier) (replies e)
+        let
+            myReplies = filter (("me" ==) . replier) (replies e)
+        in
+            catMaybes $ map fromCardReply $ map repliedCard myReplies
     where
         playerRequests = filter ((player ==) . asker) $ filter isTurnEntry log
