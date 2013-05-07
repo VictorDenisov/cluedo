@@ -115,5 +115,8 @@ tests = [ testGroup "cardCount"
             , testCase
                 "testCardsShowedTo_MePlayerIsAbsent"
                 testCardsShowedTo_MePlayerIsAbsent
+            , testCase
+                "testCardsShowedTo_ListedPlayers"
+                testCardsShowedTo_ListedPlayers
             ]
         ]

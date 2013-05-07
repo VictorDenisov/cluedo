@@ -263,3 +263,24 @@ testCardsShowedTo_MePlayerIsAbsent =
                     ]
             ]
     )
+
+testCardsShowedTo_ListedPlayers :: Assertion
+testCardsShowedTo_ListedPlayers =
+    [Model.Peacock]
+    @=?
+    (Model.cardsShowedTo
+            "player1"
+            [ Model.TurnEntry
+                    "player1"
+                    [ Model.Peacock
+                    , Model.Wrench
+                    ]
+                    [ Model.Reply
+                        "me"
+                        (Model.CardReply Model.Peacock)
+                    , Model.Reply
+                        "player2"
+                        (Model.CardReply Model.Wrench)
+                    ]
+            ]
+    )
