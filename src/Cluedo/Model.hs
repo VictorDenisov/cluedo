@@ -177,5 +177,5 @@ cardsShowedTo player log =
     concat $ map (catMaybes . map fromCardReply . myCardReplies) playerRequests
     where
         playerRequests = filter ((player ==) . asker) $ filter isTurnEntry log
-        myCardReplies e = map repliedCard (myReplies e)
-        myReplies e = filter (("me" ==) . replier) (replies e)
+        myCardReplies turnEntry = map repliedCard (myReplies turnEntry)
+        myReplies turnEntry = filter (("me" ==) . replier) (replies turnEntry)
