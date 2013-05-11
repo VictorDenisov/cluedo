@@ -627,7 +627,7 @@ enterTurn playerName = do
     lift $ addLogEntry logEntry
     lift rectifyTable
 
-reportError :: IOException -> InputT (Cluedo IO) ()
+reportError :: MonadIO m => IOException -> m ()
 reportError e = liftIO $ putStrLn $ "IO error " ++ (show e)
 
 printShowedCards :: MonadIO m => String -> Cluedo m ()
