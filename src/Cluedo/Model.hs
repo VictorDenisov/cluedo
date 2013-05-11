@@ -180,3 +180,13 @@ cardsShowedTo player log =
         turnLogEntries = filter isTurnEntry log
         myCardReplies turnEntry = map repliedCard (myReplies turnEntry)
         myReplies turnEntry = filter (("me" ==) . replier) (replies turnEntry)
+
+--TODO test this function.
+findPlayerPossiblyHasCard :: [Player] -> Card -> Maybe (String, Card)
+findPlayerPossiblyHasCard ps c =
+        let statuses = map (getCardStatus c) ps
+            noCount = length $ filter (No ==) statuses in
+        if noCount == (length ps - 1)
+            then let p = fromJust $ find ((No /=) . (getCardStatus c)) ps
+                     in Just (name p, c)
+            else Nothing
