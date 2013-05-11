@@ -1,5 +1,6 @@
 module Cluedo where
 
+import Prelude hiding (log, catch)
 import Control.Monad.State (MonadState(..))
 import Control.Monad.Trans.State.Strict (StateT(..))
 
@@ -30,3 +31,8 @@ getPlayerCards n = do
         else return $ do
             player <- find ((n ==) . name) (players st)
             return $ cards player
+
+addLogEntry :: Monad m => LogEntry -> Cluedo m ()
+addLogEntry logEntry = do
+    st <- get
+    put $ st {log = logEntry : log st}

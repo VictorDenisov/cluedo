@@ -606,11 +606,6 @@ rectifyTable = do
     fixPlayerPluses
     fixCategoryPluses
 
-addLogEntry :: Monad m => LogEntry -> Cluedo m ()
-addLogEntry logEntry = do
-    st <- get
-    put $ st {log = logEntry : log st}
-
 enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
     liftIO $ putStrLn "Enter named cards"
