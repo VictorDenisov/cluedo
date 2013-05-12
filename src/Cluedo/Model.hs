@@ -182,8 +182,10 @@ cardsShowedTo player log =
         myReplies turnEntry = filter (("me" ==) . replier) (replies turnEntry)
 
 --TODO test this function.
-findPlayerPossiblyHasCard :: [Player] -> Card -> Maybe (String, Card)
-findPlayerPossiblyHasCard ps c =
+findSinglePlayerWithNonNegativeCardStatus :: [Player]
+                                             -> Card
+                                             -> Maybe (String, Card)
+findSinglePlayerWithNonNegativeCardStatus ps c =
         if noCount == (length ps - 1)
             then let p = fromJust $ find ((No /=) . (getCardStatus c)) ps
                      in Just (name p, c)

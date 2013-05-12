@@ -289,7 +289,7 @@ testFindPlayerPossiblyHasCard_hasCardYes :: Assertion
 testFindPlayerPossiblyHasCard_hasCardYes =
     (Just ("player1", Model.Peacock))
     @=?
-    (Model.findPlayerPossiblyHasCard
+    (Model.findSinglePlayerWithNonNegativeCardStatus
                 [ (Model.Player
                     "player1"
                     [ (Model.Peacock, Model.Yes)
@@ -308,7 +308,7 @@ testFindPlayerPossiblyHasCard_hasCardUnknown :: Assertion
 testFindPlayerPossiblyHasCard_hasCardUnknown =
     (Just ("player1", Model.Peacock))
     @=?
-    (Model.findPlayerPossiblyHasCard
+    (Model.findSinglePlayerWithNonNegativeCardStatus
                 [ (Model.Player
                     "player1"
                     [ (Model.Peacock, Model.Unknown)
@@ -327,7 +327,7 @@ testFindPlayerPossiblyHasCard_hasCardNothing :: Assertion
 testFindPlayerPossiblyHasCard_hasCardNothing =
     Nothing
     @=?
-    (Model.findPlayerPossiblyHasCard
+    (Model.findSinglePlayerWithNonNegativeCardStatus
                 [ (Model.Player
                     "player1"
                     [ (Model.Peacock, Model.Unknown)

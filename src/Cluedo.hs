@@ -160,10 +160,11 @@ fixNobodyHasCard :: Monad m => Cluedo m ()
 fixNobodyHasCard = do
     st <- get
     let allPlayers = (envelope st) : (out st) : (players st)
-    forM_ (map (findPlayerPossiblyHasCard allPlayers) allCards) $ \v ->
-        case v of
-            Nothing -> return ()
-            Just (n, c) -> setPlayerCard n c
+    forM_ (map (findSinglePlayerWithNonNegativeCardStatus allPlayers) allCards)
+          $ \v ->
+            case v of
+                Nothing -> return ()
+                Just (n, c) -> setPlayerCard n c
 
 fixPlayerHasAllCards :: Monad m => Cluedo m ()
 fixPlayerHasAllCards = do
