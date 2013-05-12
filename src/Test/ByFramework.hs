@@ -130,4 +130,21 @@ tests = [ testGroup "cardCount"
                 "testFindPlayerPossiblyHasCard_hasCardNothing"
                 testFindPlayerPossiblyHasCard_hasCardNothing
             ]
+        , testGroup "generateCardCompletionList"
+            [ testCase
+                "testGenerateCardCompletionList_EmptyStringAllCards"
+                testGenerateCardCompletionList_EmptyStringAllCards
+            , testCase
+                "testGenerateCardCompletionList_PeacockPrefix"
+                testGenerateCardCompletionList_PeacockPrefix
+            , testCase
+                "testGenerateCardCompletionList_PeacockPrefixSecondToken"
+                testGenerateCardCompletionList_PeacockPrefixSecondToken
+            , testCase
+                "testGenerateCardCompletionList_EndingSpaceNonMentionedCards"
+                testGenerateCardCompletionList_EndingSpaceNonMentionedCards
+            , testCase
+                "testGenerateCardCompletionList_OnlyFromAllowedCards"
+                testGenerateCardCompletionList_OnlyFromAllowedCards
+            ]
         ]

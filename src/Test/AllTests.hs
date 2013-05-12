@@ -341,3 +341,33 @@ testFindPlayerPossiblyHasCard_hasCardNothing =
                 ]
                 Model.Peacock
     )
+
+testGenerateCardCompletionList_EmptyStringAllCards :: Assertion
+testGenerateCardCompletionList_EmptyStringAllCards =
+    Model.allCardsStrings
+    @=?
+    (Model.generateCardCompletionList Model.allCards "")
+
+testGenerateCardCompletionList_PeacockPrefix :: Assertion
+testGenerateCardCompletionList_PeacockPrefix =
+    ["Peacock"]
+    @=?
+    (Model.generateCardCompletionList Model.allCards $ reverse "Pea")
+
+testGenerateCardCompletionList_PeacockPrefixSecondToken :: Assertion
+testGenerateCardCompletionList_PeacockPrefixSecondToken =
+    ["Peacock"]
+    @=?
+    (Model.generateCardCompletionList Model.allCards $ reverse "White Pea")
+
+testGenerateCardCompletionList_EndingSpaceNonMentionedCards :: Assertion
+testGenerateCardCompletionList_EndingSpaceNonMentionedCards =
+    (filter ("White" /=) Model.allCardsStrings)
+    @=?
+    (Model.generateCardCompletionList Model.allCards $ reverse "White ")
+
+testGenerateCardCompletionList_OnlyFromAllowedCards :: Assertion
+testGenerateCardCompletionList_OnlyFromAllowedCards =
+    ["White", "Wrench"]
+    @=?
+    (Model.generateCardCompletionList [Model.White, Model.Wrench] "")

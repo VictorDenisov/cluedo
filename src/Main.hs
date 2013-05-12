@@ -168,6 +168,8 @@ printCommandList = ["log", "table"]
 emptyCompleter :: MonadIO m => CompletionFunc (Cluedo m)
 emptyCompleter (leftLine, _) = return (leftLine, [])
 
+-- TODO completer doesn't verify count.
+-- TODO completer doesn't verify uniqueness.
 cardCompleter :: MonadIO m => CompletionFunc (Cluedo m)
 cardCompleter (leftLine, _) = do
     let line = reverse leftLine
@@ -350,6 +352,7 @@ askCards prompt cardsOk = withCompleter cardCompleter $ do
     where
             again = askCards prompt cardsOk
 
+-- TODO askMyCards doesn't verify uniqueness.
 askMyCards :: InputT (Cluedo IO) ()
 askMyCards = do
     playerCount <- lift $ length <$> players <$> get
