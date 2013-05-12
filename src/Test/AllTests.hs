@@ -284,3 +284,60 @@ testCardsShowedTo_ListedPlayers =
                     ]
             ]
     )
+
+testFindPlayerPossiblyHasCard_hasCardYes :: Assertion
+testFindPlayerPossiblyHasCard_hasCardYes =
+    (Just ("player1", Model.Peacock))
+    @=?
+    (Model.findPlayerPossiblyHasCard
+                [ (Model.Player
+                    "player1"
+                    [ (Model.Peacock, Model.Yes)
+                    , (Model.White, Model.No)
+                    ])
+                , (Model.Player
+                    "player2"
+                    [ (Model.Peacock, Model.No)
+                    , (Model.White, Model.No)
+                    ])
+                ]
+                Model.Peacock
+    )
+
+testFindPlayerPossiblyHasCard_hasCardUnknown :: Assertion
+testFindPlayerPossiblyHasCard_hasCardUnknown =
+    (Just ("player1", Model.Peacock))
+    @=?
+    (Model.findPlayerPossiblyHasCard
+                [ (Model.Player
+                    "player1"
+                    [ (Model.Peacock, Model.Unknown)
+                    , (Model.White, Model.No)
+                    ])
+                , (Model.Player
+                    "player2"
+                    [ (Model.Peacock, Model.No)
+                    , (Model.White, Model.No)
+                    ])
+                ]
+                Model.Peacock
+    )
+
+testFindPlayerPossiblyHasCard_hasCardNothing :: Assertion
+testFindPlayerPossiblyHasCard_hasCardNothing =
+    Nothing
+    @=?
+    (Model.findPlayerPossiblyHasCard
+                [ (Model.Player
+                    "player1"
+                    [ (Model.Peacock, Model.Unknown)
+                    , (Model.White, Model.No)
+                    ])
+                , (Model.Player
+                    "player2"
+                    [ (Model.Peacock, Model.Unknown)
+                    , (Model.White, Model.No)
+                    ])
+                ]
+                Model.Peacock
+    )

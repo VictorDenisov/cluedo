@@ -119,4 +119,15 @@ tests = [ testGroup "cardCount"
                 "testCardsShowedTo_ListedPlayers"
                 testCardsShowedTo_ListedPlayers
             ]
+        , testGroup "findPlayerPossiblyHasCard"
+            [ testCase
+                "testFindPlayerPossiblyHasCard_hasCardYes"
+                testFindPlayerPossiblyHasCard_hasCardYes
+            , testCase
+                "testFindPlayerPossiblyHasCard_hasCardUnknown"
+                testFindPlayerPossiblyHasCard_hasCardUnknown
+            , testCase
+                "testFindPlayerPossiblyHasCard_hasCardNothing"
+                testFindPlayerPossiblyHasCard_hasCardNothing
+            ]
         ]
