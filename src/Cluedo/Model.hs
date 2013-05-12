@@ -149,7 +149,7 @@ printReply (Reply name card) = name ++ "\t" ++ (show card)
 
 data LogEntry = TurnEntry
                     { asker      :: String
-                    , cardsAsked :: [Card]
+                    , cardsAsked :: [Card] -- TODO convert this to tuple of three cards
                     , replies    :: [Reply]
                     }
               | Accusation String [Card]
