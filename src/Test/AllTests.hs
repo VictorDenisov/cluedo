@@ -4,6 +4,7 @@ where
 import Test.HUnit
 
 import qualified Cluedo.Model as Model
+import qualified Cluedo.Utils as Utils
 
 testCardCount :: Assertion
 testCardCount = 21 @=? Model.cardCount
@@ -346,28 +347,28 @@ testGenerateCardCompletionList_EmptyStringAllCards :: Assertion
 testGenerateCardCompletionList_EmptyStringAllCards =
     Model.allCardsStrings
     @=?
-    (Model.generateCardCompletionList Model.allCards "")
+    (Utils.generateCardCompletionList Model.allCards "")
 
 testGenerateCardCompletionList_PeacockPrefix :: Assertion
 testGenerateCardCompletionList_PeacockPrefix =
     ["Peacock"]
     @=?
-    (Model.generateCardCompletionList Model.allCards $ reverse "Pea")
+    (Utils.generateCardCompletionList Model.allCards $ reverse "Pea")
 
 testGenerateCardCompletionList_PeacockPrefixSecondToken :: Assertion
 testGenerateCardCompletionList_PeacockPrefixSecondToken =
     ["Peacock"]
     @=?
-    (Model.generateCardCompletionList Model.allCards $ reverse "White Pea")
+    (Utils.generateCardCompletionList Model.allCards $ reverse "White Pea")
 
 testGenerateCardCompletionList_EndingSpaceNonMentionedCards :: Assertion
 testGenerateCardCompletionList_EndingSpaceNonMentionedCards =
     (filter ("White" /=) Model.allCardsStrings)
     @=?
-    (Model.generateCardCompletionList Model.allCards $ reverse "White ")
+    (Utils.generateCardCompletionList Model.allCards $ reverse "White ")
 
 testGenerateCardCompletionList_OnlyFromAllowedCards :: Assertion
 testGenerateCardCompletionList_OnlyFromAllowedCards =
     ["White", "Wrench"]
     @=?
-    (Model.generateCardCompletionList [Model.White, Model.Wrench] "")
+    (Utils.generateCardCompletionList [Model.White, Model.Wrench] "")

@@ -193,15 +193,3 @@ findSinglePlayerWithNonNegativeCardStatus ps c =
     where
         noCount = length $ filter (No ==) statuses
         statuses = map (getCardStatus c) ps
-
--- TODO move to Utils module. It shouldn't be in Model module.
-generateCardCompletionList :: [Card] -> String -> [String]
-generateCardCompletionList allowedCards "" = map show allowedCards
-generateCardCompletionList allowedCards s =
-        if head s == ' '
-            then filter (not . (`elem` ws)) allowedCardsStrings
-            else filter ((last ws) `isPrefixOf`) allowedCardsStrings
-    where
-        ws = words line
-        line = reverse s
-        allowedCardsStrings = map show allowedCards
