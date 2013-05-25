@@ -345,30 +345,30 @@ testFindPlayerPossiblyHasCard_hasCardNothing =
 
 testGenerateCardCompletionList_EmptyStringAllCards :: Assertion
 testGenerateCardCompletionList_EmptyStringAllCards =
-    Model.allCardsStrings
+    ("", Model.allCardsStrings)
     @=?
     (Utils.generateCardCompletionList Model.allCards "")
 
 testGenerateCardCompletionList_PeacockPrefix :: Assertion
 testGenerateCardCompletionList_PeacockPrefix =
-    ["Peacock"]
+    ("", ["Peacock"])
     @=?
     (Utils.generateCardCompletionList Model.allCards $ reverse "Pea")
 
 testGenerateCardCompletionList_PeacockPrefixSecondToken :: Assertion
 testGenerateCardCompletionList_PeacockPrefixSecondToken =
-    ["Peacock"]
+    (" etihW", ["Peacock"])
     @=?
     (Utils.generateCardCompletionList Model.allCards $ reverse "White Pea")
 
 testGenerateCardCompletionList_EndingSpaceNonMentionedCards :: Assertion
 testGenerateCardCompletionList_EndingSpaceNonMentionedCards =
-    (filter ("White" /=) Model.allCardsStrings)
+    (" etihW", (filter ("White" /=) Model.allCardsStrings))
     @=?
     (Utils.generateCardCompletionList Model.allCards $ reverse "White ")
 
 testGenerateCardCompletionList_OnlyFromAllowedCards :: Assertion
 testGenerateCardCompletionList_OnlyFromAllowedCards =
-    ["White", "Wrench"]
+    ("", ["White", "Wrench"])
     @=?
     (Utils.generateCardCompletionList [Model.White, Model.Wrench] "")
