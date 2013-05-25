@@ -1,6 +1,6 @@
 import Prelude hiding (log, catch)
 import Control.Applicative ((<$>))
-import Control.Arrow (first)
+import Control.Arrow (second)
 import Control.Monad.Trans.State.Strict (StateT(..), evalStateT)
 import Control.Monad.Trans (liftIO, lift)
 import Control.Monad.State (MonadState(..))
@@ -26,6 +26,7 @@ import System.Console.Haskeline.MonadException( catch
 import System.Exit (exitSuccess)
 import Cluedo
 import Cluedo.Model
+import Cluedo.Utils
 
 main = evalStateT (runInputT (Settings (commandLineComplete) Nothing True)
                              (initialSetup >> mainLoop))
@@ -169,19 +170,9 @@ emptyCompleter :: MonadIO m => CompletionFunc (Cluedo m)
 emptyCompleter (leftLine, _) = return (leftLine, [])
 
 -- TODO completer doesn't verify count.
--- TODO completer doesn't verify uniqueness.
 cardCompleter :: MonadIO m => CompletionFunc (Cluedo m)
-cardCompleter (leftLine, _) = do
-    let line = reverse leftLine
-    let ws = words line
-    if length ws == 0
-        then return (leftLine, buildCompletions allCardsStrings)
-        else case head leftLine of
-                ' ' -> return (leftLine, buildCompletions allCardsStrings)
-                _ -> return $ listCompleter
-                                    leftLine
-                                    (last ws)
-                                    allCardsStrings
+cardCompleter (leftLine, _) = return $
+    second buildCompletions $ generateCardCompletionList allCards leftLine
 
 listCompleter :: String -> String -> [String] -> (String, [Completion])
 listCompleter leftLine card list =
@@ -352,7 +343,6 @@ askCards prompt cardsOk = withCompleter cardCompleter $ do
     where
             again = askCards prompt cardsOk
 
--- TODO askMyCards doesn't verify uniqueness.
 askMyCards :: InputT (Cluedo IO) ()
 askMyCards = do
     playerCount <- lift $ length <$> players <$> get
