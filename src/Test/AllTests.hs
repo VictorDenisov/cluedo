@@ -372,3 +372,15 @@ testGenerateCardCompletionList_OnlyFromAllowedCards =
     ("", ["White", "Wrench"])
     @=?
     (Utils.generateCardCompletionList 1 [Model.White, Model.Wrench] "")
+
+testGenerateCardCompletionList_ListOfCardsIsFull :: Assertion
+testGenerateCardCompletionList_ListOfCardsIsFull =
+    (" etihW", [])
+    @=?
+    (Utils.generateCardCompletionList 1 Model.allCards $ reverse "White ")
+
+testGenerateCardCompletionList_ListOfCardsHasSpace :: Assertion
+testGenerateCardCompletionList_ListOfCardsHasSpace =
+    (" etihW", ["Peacock"])
+    @=?
+    (Utils.generateCardCompletionList 2 Model.allCards $ reverse "White Pea")

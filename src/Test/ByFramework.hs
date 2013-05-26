@@ -146,5 +146,11 @@ tests = [ testGroup "cardCount"
             , testCase
                 "testGenerateCardCompletionList_OnlyFromAllowedCards"
                 testGenerateCardCompletionList_OnlyFromAllowedCards
+            , testCase
+                "testGenerateCardCompletionList_ListOfCardsIsFull"
+                testGenerateCardCompletionList_ListOfCardsIsFull
+            , testCase
+                "testGenerateCardCompletionList_ListOfCardsHasSpace"
+                testGenerateCardCompletionList_ListOfCardsHasSpace
             ]
         ]
