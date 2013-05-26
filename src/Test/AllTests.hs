@@ -2,6 +2,7 @@ module Test.AllTests
 where
 
 import Test.HUnit
+import Data.List (isPrefixOf)
 
 import qualified Cluedo.Model as Model
 import qualified Cluedo.Utils as Utils
@@ -384,3 +385,9 @@ testGenerateCardCompletionList_ListOfCardsHasSpace =
     (" etihW", ["Peacock"])
     @=?
     (Utils.generateCardCompletionList 2 Model.allCards $ reverse "White Pea")
+
+testGenerateCardCompletionList_PartialNonRepeated :: Assertion
+testGenerateCardCompletionList_PartialNonRepeated =
+    (" etihW", [])
+    @=?
+    (Utils.generateCardCompletionList 2 Model.allCards $ reverse "White Whi")

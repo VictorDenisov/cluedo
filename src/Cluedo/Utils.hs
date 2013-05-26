@@ -11,15 +11,16 @@ generateCardCompletionList count allowedCards s =
         if head s == ' '
             then ( s
                  , if length ws < count
-                    then filter (not . (`elem` ws)) allowedCardsStrings
+                    then notPresentCards
                     else []
                  )
             else ( drop (length (last ws)) s
                  , if length ws <= count
-                    then filter ((last ws) `isPrefixOf`) allowedCardsStrings
+                    then filter ((last ws) `isPrefixOf`) notPresentCards
                     else []
                  )
     where
         ws = words line
         line = reverse s
         allowedCardsStrings = map show allowedCards
+        notPresentCards = filter (not . (`elem` ws)) allowedCardsStrings
