@@ -170,9 +170,9 @@ emptyCompleter :: MonadIO m => CompletionFunc (Cluedo m)
 emptyCompleter (leftLine, _) = return (leftLine, [])
 
 -- TODO completer doesn't verify count.
-cardCompleter :: MonadIO m => CompletionFunc (Cluedo m)
-cardCompleter (leftLine, _) = return $
-    second buildCompletions $ generateCardCompletionList allCards leftLine
+cardCompleter :: MonadIO m => Int -> CompletionFunc (Cluedo m)
+cardCompleter count (leftLine, _) = return $
+    second buildCompletions $ generateCardCompletionList count allCards leftLine
 
 listCompleter :: String -> String -> [String] -> (String, [Completion])
 listCompleter leftLine card list =
@@ -316,8 +316,11 @@ askPlayerNames = do
         Just v ->  lift $ setPlayers
                             $ (fullPlayer "me") : (map fullPlayer (words v))
 
-askCards :: String -> ([Card] -> Bool) -> InputT (Cluedo IO) [Card]
-askCards prompt cardsOk = withCompleter cardCompleter $ do
+askCards :: CompletionFunc (Cluedo IO)
+         -> String
+         -> ([Card] -> Bool)
+         -> InputT (Cluedo IO) [Card]
+askCards completer prompt cardsOk = withCompleter completer $ do
     l <- getInputLine prompt
     case l of
         Nothing -> fail "askCards aborted"
@@ -341,7 +344,7 @@ askCards prompt cardsOk = withCompleter cardCompleter $ do
                                 ++ "condition. Asking again."
                             again
     where
-            again = askCards prompt cardsOk
+            again = askCards completer prompt cardsOk
 
 askMyCards :: InputT (Cluedo IO) ()
 askMyCards = do
@@ -349,6 +352,7 @@ askMyCards = do
     let cardNumber = ((cardCount - 3) `div` playerCount)
     liftIO $ putStrLn $ "Please enter your cards (" ++ (show cardNumber) ++ ")"
     cards <- askCards
+                (cardCompleter cardNumber)
                 (cmdPrompt "")
                 $ \cs -> (length cs == cardNumber)
                       && (all (`elem` allCards) cs)
@@ -363,6 +367,7 @@ askOutCards = do
         else do
             liftIO $ putStrLn $ "Please enter out (" ++ (show cardNumber) ++ ")"
             cards <- askCards
+                        (cardCompleter cardNumber)
                         (cmdPrompt "")
                         $ \cs -> length cs == cardNumber
             lift $ mapM_ (setPlayerCard "out") cards
@@ -432,6 +437,7 @@ enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
     liftIO $ putStrLn "Enter named cards"
     cards <- askCards
+                (cardCompleter 3)
                 (cmdPrompt ("turn " ++ playerName))
                 $ \cs -> (length cs == 3) && (any isPieceCard cs)
                                           && (any isRoomCard cs)

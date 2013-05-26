@@ -4,9 +4,9 @@ where
 import qualified Cluedo.Model as M
 import Data.List (isPrefixOf)
 
-generateCardCompletionList :: [M.Card] -> String -> (String, [String])
-generateCardCompletionList allowedCards "" = ("", map show allowedCards)
-generateCardCompletionList allowedCards s =
+generateCardCompletionList :: Int -> [M.Card] -> String -> (String, [String])
+generateCardCompletionList count allowedCards "" = ("", map show allowedCards)
+generateCardCompletionList count allowedCards s =
         if head s == ' '
             then (s, filter (not . (`elem` ws)) allowedCardsStrings)
             else ( drop (length (last ws)) s

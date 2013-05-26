@@ -347,28 +347,28 @@ testGenerateCardCompletionList_EmptyStringAllCards :: Assertion
 testGenerateCardCompletionList_EmptyStringAllCards =
     ("", Model.allCardsStrings)
     @=?
-    (Utils.generateCardCompletionList Model.allCards "")
+    (Utils.generateCardCompletionList 1 Model.allCards "")
 
 testGenerateCardCompletionList_PeacockPrefix :: Assertion
 testGenerateCardCompletionList_PeacockPrefix =
     ("", ["Peacock"])
     @=?
-    (Utils.generateCardCompletionList Model.allCards $ reverse "Pea")
+    (Utils.generateCardCompletionList 1 Model.allCards $ reverse "Pea")
 
 testGenerateCardCompletionList_PeacockPrefixSecondToken :: Assertion
 testGenerateCardCompletionList_PeacockPrefixSecondToken =
     (" etihW", ["Peacock"])
     @=?
-    (Utils.generateCardCompletionList Model.allCards $ reverse "White Pea")
+    (Utils.generateCardCompletionList 2 Model.allCards $ reverse "White Pea")
 
 testGenerateCardCompletionList_EndingSpaceNonMentionedCards :: Assertion
 testGenerateCardCompletionList_EndingSpaceNonMentionedCards =
     (" etihW", (filter ("White" /=) Model.allCardsStrings))
     @=?
-    (Utils.generateCardCompletionList Model.allCards $ reverse "White ")
+    (Utils.generateCardCompletionList 2 Model.allCards $ reverse "White ")
 
 testGenerateCardCompletionList_OnlyFromAllowedCards :: Assertion
 testGenerateCardCompletionList_OnlyFromAllowedCards =
     ("", ["White", "Wrench"])
     @=?
-    (Utils.generateCardCompletionList [Model.White, Model.Wrench] "")
+    (Utils.generateCardCompletionList 1 [Model.White, Model.Wrench] "")
