@@ -23,4 +23,10 @@ generateCardCompletionList count allowedCards s =
         ws = words line
         line = reverse s
         allowedCardsStrings = map show allowedCards
-        notPresentCards = filter (not . (`elem` ws)) allowedCardsStrings
+        notPresentCards = filter (not . (`elem`
+            (if head s == ' '
+               then  ws
+               else (init ws)
+   -- if there is no space in the end last word should be included in completion
+            )
+           )) allowedCardsStrings

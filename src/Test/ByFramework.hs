@@ -155,5 +155,8 @@ tests = [ testGroup "cardCount"
             , testCase
                 "testGenerateCardCompletionList_PartialNonRepeated"
                 testGenerateCardCompletionList_PartialNonRepeated
+            , testCase
+                "testGenerateCardCompletionList_LastWordShouldBeCompleted"
+                testGenerateCardCompletionList_LastWordShouldBeCompleted
             ]
         ]

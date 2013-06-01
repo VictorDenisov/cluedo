@@ -391,3 +391,9 @@ testGenerateCardCompletionList_PartialNonRepeated =
     (" etihW", [])
     @=?
     (Utils.generateCardCompletionList 2 Model.allCards $ reverse "White Whi")
+
+testGenerateCardCompletionList_LastWordShouldBeCompleted :: Assertion
+testGenerateCardCompletionList_LastWordShouldBeCompleted =
+    (" etihW", ["Rope"])
+    @=?
+    (Utils.generateCardCompletionList 2 Model.allCards $ reverse "White Rope")
