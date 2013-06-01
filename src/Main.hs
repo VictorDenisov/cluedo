@@ -8,7 +8,7 @@ import Control.Monad.Error (ErrorT(..), MonadError(..))
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad (forM_, when)
 
-import Data.List (intercalate, find, isPrefixOf, sortBy, groupBy, intersect)
+import Data.List (intercalate, find, isPrefixOf, sortBy, groupBy, intersect, (\\))
 import Data.Maybe (isJust, isNothing, fromJust, catMaybes)
 
 import System.Console.Haskeline ( InputT
@@ -170,9 +170,9 @@ emptyCompleter :: MonadIO m => CompletionFunc (Cluedo m)
 emptyCompleter (leftLine, _) = return (leftLine, [])
 
 -- TODO completer doesn't verify count.
-cardCompleter :: MonadIO m => Int -> CompletionFunc (Cluedo m)
-cardCompleter count (leftLine, _) = return $
-    second buildCompletions $ generateCardCompletionList count allCards leftLine
+cardCompleter :: MonadIO m => Int -> [Card] -> CompletionFunc (Cluedo m)
+cardCompleter count allowedCards (leftLine, _) = return $
+    second buildCompletions $ generateCardCompletionList count allowedCards leftLine
 
 listCompleter :: String -> String -> [String] -> (String, [Completion])
 listCompleter leftLine card list =
@@ -352,7 +352,7 @@ askMyCards = do
     let cardNumber = ((cardCount - 3) `div` playerCount)
     liftIO $ putStrLn $ "Please enter your cards (" ++ (show cardNumber) ++ ")"
     cards <- askCards
-                (cardCompleter cardNumber)
+                (cardCompleter cardNumber allCards)
                 (cmdPrompt "")
                 $ \cs -> (length cs == cardNumber)
                       && (all (`elem` allCards) cs)
@@ -361,13 +361,15 @@ askMyCards = do
 askOutCards :: InputT (Cluedo IO) ()
 askOutCards = do
     playerCount <- lift $ length <$> players <$> get
+    (Just myCardsStatuses) <- lift $ getPlayerCards "me"
+    let myCards = map fst $ filter ((Yes ==) . snd) myCardsStatuses
     let cardNumber = ((cardCount - 3) `rem` playerCount)
     if cardNumber == 0
         then liftIO $ putStrLn "Out is empty. No cards to be entered."
         else do
             liftIO $ putStrLn $ "Please enter out (" ++ (show cardNumber) ++ ")"
             cards <- askCards
-                        (cardCompleter cardNumber)
+                        (cardCompleter cardNumber (allCards \\ myCards))
                         (cmdPrompt "")
                         $ \cs -> length cs == cardNumber
             lift $ mapM_ (setPlayerCard "out") cards
@@ -437,7 +439,7 @@ enterTurn :: String -> InputT (Cluedo IO) ()
 enterTurn playerName = do
     liftIO $ putStrLn "Enter named cards"
     cards <- askCards
-                (cardCompleter 3)
+                (cardCompleter 3 allCards)
                 (cmdPrompt ("turn " ++ playerName))
                 $ \cs -> (length cs == 3) && (any isPieceCard cs)
                                           && (any isRoomCard cs)
