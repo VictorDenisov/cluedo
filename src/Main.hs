@@ -313,8 +313,14 @@ askPlayerNames = do
     case l of
         Nothing -> liftIO exitSuccess
         Just "" -> askPlayerNames
-        Just v ->  lift $ setPlayers
+        Just v ->
+            if isUnique $ words v
+                then lift $ setPlayers
                             $ (fullPlayer "me") : (map fullPlayer (words v))
+                else do
+                    liftIO $ putStrLn
+                                   $ "Player names are not unique. Aking again."
+                    askPlayerNames
 
 askCards :: CompletionFunc (Cluedo IO)
          -> String

@@ -397,3 +397,11 @@ testGenerateCardCompletionList_LastWordShouldBeCompleted =
     (" etihW", ["Rope"])
     @=?
     (Utils.generateCardCompletionList 2 Model.allCards $ reverse "White Rope")
+
+testIsUnique_allDifferent :: Assertion
+testIsUnique_allDifferent =
+    True @=? (Utils.isUnique ["A", "B", "C"])
+
+testIsUnique_hasSimilar :: Assertion
+testIsUnique_hasSimilar =
+    False @=? (Utils.isUnique ["A", "B", "B"])

@@ -159,4 +159,12 @@ tests = [ testGroup "cardCount"
                 "testGenerateCardCompletionList_LastWordShouldBeCompleted"
                 testGenerateCardCompletionList_LastWordShouldBeCompleted
             ]
+        , testGroup "isUnique"
+            [ testCase
+                "testIsUnique_allDifferent"
+                testIsUnique_allDifferent
+            , testCase
+                "testIsUnique_hasSimilar"
+                testIsUnique_hasSimilar
+            ]
         ]
